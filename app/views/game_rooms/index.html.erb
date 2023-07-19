@@ -1,0 +1,20 @@
+<p style="color: green"><%= notice %></p>
+
+<h1 class="center">Game rooms</h1>
+
+<div id="game_rooms" class="table_container">
+  <% @game_rooms.each do |game_room| %>
+    <div class="table">
+      <%= link_to game_room do %>
+        <h3> Room # <%= game_room.id %></h3>
+        <svg
+          data-controller="map-viewer"
+          data-map-viewer-width-value="<%=game_room.map_width%>"
+          data-map-viewer-map-value="<%= game_room.map_terrain %>"
+        />
+      <% end %>      
+    </div>
+  <% end %>
+</div>
+
+<h2 class="center"><%= link_to "New game room", new_game_room_path %></h2>

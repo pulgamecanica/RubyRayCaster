@@ -1,0 +1,26 @@
+<p style="color: green"><%= notice %></p>
+<%= link_to "Back to players", players_path %>
+
+<div class="row" id="<%= dom_id @player %>">
+
+  <div class="col">
+    <strong>Name:</strong>
+    <%= @player.name %>
+  </div>
+
+  <div class="col">
+    <strong>Bio:</strong>
+    <%= @player.bio %>
+  </div>
+
+  <div class="col">
+    <strong>Color:</strong>
+    <%= @player.color %>
+  </div>
+
+  <div class="col">
+    <%= link_to "Edit this player", edit_player_path(@player) %>
+    <%= button_to "Destroy this player", @player, method: :delete %>
+  </div>
+
+</div>

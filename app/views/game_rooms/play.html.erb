@@ -1,0 +1,42 @@
+<div class="table_container">
+	<div class="table">
+		<div class="row">
+			<div class="col">
+				<div class="row no-outilne">
+					<div class="col no-outilne">
+						<h1>Room # <%= @game_room.id %></h1>
+						<h4>Show players position on the map...?</h4>
+						<svg
+							data-controller="map-viewer"
+							data-map-viewer-width-value="<%=@game_room.map_width%>"
+							data-map-viewer-map-value="<%= @game_room.map_terrain %>"
+						/>
+					</div>
+				</div>
+				<div class="row">
+					<div 
+						data-controller="game"
+						class="col no-outilne" style="width: 100%"
+					>
+						<button
+							class="play_button"
+							data-action="click->game#load_game"
+						>Play</button>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<h2>Players</h2>
+				<span>Hotwire connect, show all players</span>
+				<span>p1</span>
+				<span>p1</span>
+				<span>p1</span>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="center container">
+	<div id="canvas_container" class="canvas-frame">
+	</div>
+</div>

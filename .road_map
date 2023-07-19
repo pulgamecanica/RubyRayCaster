@@ -1,0 +1,303 @@
+##################################################################
+# Generate Game Room
+>$ rails g scaffold GameRoom map_terrain:text map_objects:text map_width:integer map_height:integer --no-helper --no-fixture --no-jbuilder
+	invoke  active_record
+	create    db/migrate/20230712135958_create_game_rooms.rb
+	create    app/models/game_room.rb
+	invoke    test_unit
+	create      test/models/game_room_test.rb
+	invoke  resource_route
+	route    resources :game_rooms
+	invoke  scaffold_controller
+	create    app/controllers/game_rooms_controller.rb
+	invoke    erb
+	create      app/views/game_rooms
+	create      app/views/game_rooms/index.html.erb
+	create      app/views/game_rooms/edit.html.erb
+	create      app/views/game_rooms/show.html.erb
+	create      app/views/game_rooms/new.html.erb
+	create      app/views/game_rooms/_form.html.erb
+	create      app/views/game_rooms/_game_room.html.erb
+	invoke    resource_route
+	invoke    test_unit
+	create      test/controllers/game_rooms_controller_test.rb
+	create      test/system/game_rooms_test.rb
+###################################################################
+# Generate Player
+>$ rails g scaffold Player name bio color --no-helper --no-fixture --no-jbuilder
+	invoke  active_record
+	create    db/migrate/20230712140158_create_players.rb
+	create    app/models/player.rb
+	invoke    test_unit
+	create      test/models/player_test.rb
+	invoke  resource_route
+	route    resources :players
+	invoke  scaffold_controller
+	create    app/controllers/players_controller.rb
+	invoke    erb
+	create      app/views/players
+	create      app/views/players/index.html.erb
+	create      app/views/players/edit.html.erb
+	create      app/views/players/show.html.erb
+	create      app/views/players/new.html.erb
+	create      app/views/players/_form.html.erb
+	create      app/views/players/_player.html.erb
+	invoke    resource_route
+	invoke    test_unit
+	create      test/controllers/players_controller_test.rb
+	create      test/system/players_test.rb
+###################################################################
+# Generate Player
+>$ rails g scaffold RoomPlayer player:references game_room:references morale:integer energy:integer --no-helper --no-fixture --no-jbuilder
+	invoke  active_record
+	create    db/migrate/20230712140345_create_room_players.rb
+	create    app/models/room_player.rb
+	invoke    test_unit
+	create      test/models/room_player_test.rb
+	invoke  resource_route
+	route    resources :room_players
+	invoke  scaffold_controller
+	create    app/controllers/room_players_controller.rb
+	invoke    erb
+	create      app/views/room_players
+	create      app/views/room_players/index.html.erb
+	create      app/views/room_players/edit.html.erb
+	create      app/views/room_players/show.html.erb
+	create      app/views/room_players/new.html.erb
+	create      app/views/room_players/_form.html.erb
+	create      app/views/room_players/_room_player.html.erb
+	invoke    resource_route
+	invoke    test_unit
+	create      test/controllers/room_players_controller_test.rb
+	create      test/system/room_players_test.rb
+###################################################################
+# Change DB to PostgreSQL
+>$ rails db:system:change --to=postgresql
+###################################################################
+# Install Gems
+>$ bunlde install
+###################################################################
+# Create Database
+>$ rails db:create
+###################################################################
+# Add d3 to the importmap
+./bin/importmap pin d3
+###################################################################
+# ...make the d3 code ...
+>$ cat << EOF > app/javascript/map-viewer_controller.js
+import { Controller } from "@hotwired/stimulus"
+import { select, scaleLinear, scaleOrdinal, extent, schemePastel2 } from "d3"
+
+const MAP_WIDTH = 175;
+const MAP_HEIGHT = 100;
+
+export default class extends Controller {
+  static values = {
+    map: String,
+    width: Number
+  }
+  connect() {
+    let map = this.mapValue;
+    let width = this.widthValue;
+    let height = map.length / width;
+    let tile_size = {x: MAP_WIDTH / width, y: MAP_HEIGHT / height};
+    let svg = select(this.element);
+
+    let data = map.split("");
+    let scX = scaleLinear().domain([0, width]).range([0, MAP_WIDTH]);
+    let scY = scaleLinear().domain([0, height - 1]).range([0, MAP_HEIGHT - tile_size.y]);
+    let scColor = scaleOrdinal( schemePastel2 ).domain( extent( data ) );
+
+    svg.attr("height", MAP_HEIGHT);
+    svg.attr("width", MAP_WIDTH);
+    
+    svg.selectAll( "rect" )
+      .data( data )
+      .enter()
+      .append( "rect" )
+      .attr( "stroke", "gray" ).attr( "fill", d => scColor(d) )
+      .attr( "x", (d, i) => { return scX(i % width) } )
+      .attr( "y", (d, i) => { return scY(Math.floor(i / width)) } )
+      .attr( "width", tile_size.x )
+      .attr( "height", tile_size.y );
+  }
+}
+EOF
+###################################################################
+# Edit the index game_room views
+>$ cat << EOF > app/views/game_rooms/index.html.erb
+<p style="color: green"><%= notice %></p>
+
+<h1 class="center">Game rooms</h1>
+
+<div id="game_rooms" class="table_container">
+  <% @game_rooms.each do |game_room| %>
+    <div class="table">
+      <%= link_to game_room do %>
+        <h3> Room # <%= game_room.id %></h3>
+        <svg
+          data-controller="map-viewer"
+          data-map-viewer-width-value="<%=game_room.map_width%>"
+          data-map-viewer-map-value="<%= game_room.map_terrain %>"
+        />
+      <% end %>      
+    </div>
+  <% end %>
+</div>
+
+<h2 class="center"><%= link_to "New game room", new_game_room_path %></h2>
+EOF
+###################################################################
+# Edit the show game_room views
+>$ cat << EOF > app/views/game_rooms/index.html.erb
+<p style="color: green"><%= notice %></p>
+<%= link_to "Back to game rooms", game_rooms_path %>
+<div class="row" id="<%= dom_id @game_room %>">
+  <div class="col">
+      <strong>Map terrain:</strong>
+      <svg
+        data-controller="map-viewer"
+        data-map-viewer-width-value="<%=@game_room.map_width%>"
+        data-map-viewer-map-value="<%= @game_room.map_terrain %>"
+      />
+      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
+        <%= @game_room.map_terrain %>
+      </div>
+  </div>
+  <div class="col">
+      <strong>Map objects:</strong>
+      <svg
+        data-controller="map-viewer"
+        data-map-viewer-width-value="<%=@game_room.map_width%>"
+        data-map-viewer-map-value="<%= @game_room.map_objects %>"
+      />
+      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
+        <%= @game_room.map_objects %>
+      </div>
+  </div>
+  <div class="col">
+    <strong>Map width:</strong>
+    <p>
+      <%= @game_room.map_width %>
+    </p>
+  </div>
+  <div class="col">
+    <strong>Map height:</strong>
+    <p>
+      <%= @game_room.map_height %>
+    </p>
+  </div>
+  <div class="col">
+    <%= link_to "Edit this game room", edit_game_room_path(@game_room) %>
+    <%= button_to "Destroy this game room", @game_room, method: :delete %>
+  </div>
+</div>
+EOF
+###################################################################
+# Setup the stylesheets
+>$ cat << EOF > app/assets/stylesheets/application.css
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS (and SCSS, if configured) file within this directory, lib/assets/stylesheets, or any plugin's
+ * vendor/assets/stylesheets directory can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the bottom of the
+ * compiled file so the styles you add here take precedence over styles defined in any other CSS
+ * files in this directory. Styles in this file should be added after the last require_* statement.
+ * It is generally better to create a new file per style scope.
+ *
+ *= require_tree .
+ *= require_self
+ */
+
+.center {
+    text-align: center;
+}
+
+.table_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    max-width: 80vw;
+    margin: auto;
+}
+
+.table {
+    margin: auto;
+}
+
+.table a {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    background: rgba(42, 42, 42, 0.42);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.table a:hover {
+    background: rgba(42, 42, 42, 0.62);
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+}
+
+.row .col {
+    min-width: 75px;
+    padding: 0.5rem;
+    background: lemonchiffon;
+    outline: 1px gray solid;
+    flex-direction: column;;
+    align-items: center;
+    justify-content: flex-start;
+    display: flex;
+    gap: 1rem;
+}
+
+.row .col *:first-child {
+    border-bottom: 1px gray solid;
+}
+
+.terrain_string {
+    font-size: 10px;
+    word-break: break-all;
+}
+EOF
+###################################################################
+routes.rb
+###################################################################
+play.html.erb
+###################################################################
+game_controller.js
+###################################################################
+# Create the Game channel (WebSocket)
+>$ rails g channel Game update user_input
+	invoke  test_unit
+	create    test/channels/game_channel_test.rb
+	identical  app/channels/application_cable/channel.rb
+	conflict  app/channels/application_cable/connection.rb
+	Overwrite /Users/andrehernandez/Desktop/RailsApps/RayCastingGame/app/channels/application_cable/connection.rb? (enter "h" for help) [Ynaqdhm] Y
+	force  app/channels/application_cable/connection.rb
+	create  app/channels/game_channel.rb
+	create  app/javascript/channels/index.js
+	create  app/javascript/channels/consumer.js
+	append  app/javascript/application.js
+	append  config/importmap.rb
+	create  app/javascript/channels/game_channel.js
+	gsub  app/javascript/channels/game_channel.js
+	append  app/javascript/channels/index.js
+
+###################################################################
+###################################################################
+###################################################################
+
+
+

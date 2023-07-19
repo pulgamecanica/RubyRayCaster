@@ -1,0 +1,43 @@
+<p style="color: green"><%= notice %></p>
+<%= link_to "Back to game rooms", game_rooms_path %>
+<div class="row" id="<%= dom_id @game_room %>">
+  <div class="col">
+      <strong>Map terrain:</strong>
+      <svg
+        data-controller="map-viewer"
+        data-map-viewer-width-value="<%=@game_room.map_width%>"
+        data-map-viewer-map-value="<%= @game_room.map_terrain %>"
+      />
+      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
+        <%= @game_room.map_terrain %>
+      </div>
+  </div>
+  <div class="col">
+      <strong>Map objects:</strong>
+      <svg
+        data-controller="map-viewer"
+        data-map-viewer-width-value="<%=@game_room.map_width%>"
+        data-map-viewer-map-value="<%= @game_room.map_objects %>"
+      />
+      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
+        <%= @game_room.map_objects %>
+      </div>
+  </div>
+  <div class="col">
+    <strong>Map width:</strong>
+    <p>
+      <%= @game_room.map_width %>
+    </p>
+  </div>
+  <div class="col">
+    <strong>Map height:</strong>
+    <p>
+      <%= @game_room.map_height %>
+    </p>
+  </div>
+  <div class="col">
+    <%= link_to "Edit this game room", edit_game_room_path(@game_room) %>
+    <%= link_to "Play this game room", game_room_play_path(@game_room) %>
+    <%= button_to "Destroy this game room", @game_room, method: :delete %>
+  </div>
+</div>
