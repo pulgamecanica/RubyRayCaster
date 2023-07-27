@@ -1,8 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 import { select, scaleLinear, scaleOrdinal, extent, schemePastel2 } from "d3"
 
-const MAP_WIDTH = 175;
-const MAP_HEIGHT = 100;
+const MAP_WIDTH = 375;
+const MAP_HEIGHT = 200;
 
 export default class extends Controller {
   static values = {

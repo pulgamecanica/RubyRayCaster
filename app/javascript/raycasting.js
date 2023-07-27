@@ -1,63 +1,60 @@
-function GameWindow(canvas) {
+function GameWindow(canvas, map, mapWidth, gameWidth = 400)
+{
   this.width = canvas.width;
-  this.height = canvas.height;  
-  this.frameRate = 24;
-  // create the main canvas
+  this.height = canvas.height;
+  this.frameRate = 24; // This is how many times per second the window is updated
   this.canvas = canvas;  
   this.canvasContext = this.canvas.getContext( '2d' );
    
-  // create the offscreen buffer (canvas)
-  this.offscreenCanvas = document.createElement('canvas');
-  this.offscreenCanvas.width = canvas.width;
-  this.offscreenCanvas.height = canvas.height;
-  this.offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
-  this.offscreenCanvasPixels =  this.offscreenCanvasContext.getImageData(0, 0, canvas.width, canvas.height);
- 
-  // size of tile (wall height)
+  // Create a buffer canvas 
+  this.bufferCanvas = document.createElement( 'canvas' );
+  this.bufferCanvas.width = canvas.width;
+  this.bufferCanvas.height = canvas.height;
+  this.bufferCanvasContext = this.bufferCanvas.getContext( '2d' );
+  this.bufferCanvasPixels = this.bufferCanvasContext.getImageData(0, 0, canvas.width, canvas.height); // Returns the matrix of pixels
+
   this.TILE_SIZE = 64;
   this.WALL_HEIGHT = 64;
-  
-  // Remember that PROJECTIONPLANE = screen.  This demo assumes your screen is 320 pixels wide, 200 pixels high
-  this.PROJECTIONPLANEWIDTH = 320;
+
+  // Game Projection Dimensions
+  this.PROJECTIONPLANEWIDTH = gameWidth;
   this.PROJECTIONPLANEHEIGHT = canvas.height;
   
-  // We use FOV of 60 degrees.  So we use this FOV basis of the table, taking into account
-  // that we need to cast 320 rays (PROJECTIONPLANEWIDTH) within that 60 degree FOV.
-  this.ANGLE60 = this.PROJECTIONPLANEWIDTH;
-  // You must make sure these values are integers because we're using loopup tables.
-  this.ANGLE30 = Math.floor(this.ANGLE60/2);
-  this.ANGLE15 = Math.floor(this.ANGLE30/2);
-  this.ANGLE90 = Math.floor(this.ANGLE30*3);
-  this.ANGLE180 = Math.floor(this.ANGLE90*2);
-  this.ANGLE270 = Math.floor(this.ANGLE90*3);
-  this.ANGLE360 = Math.floor(this.ANGLE60*6);
+  this.ANGLE60 = this.PROJECTIONPLANEWIDTH; // 60deg FOV to simulate human vision
+  this.ANGLE30 = Math.floor(this.ANGLE60 / 2);
+  this.ANGLE15 = Math.floor(this.ANGLE30 / 2);
+  this.ANGLE90 = Math.floor(this.ANGLE30 * 3);
+  this.ANGLE180 = Math.floor(this.ANGLE90 * 2);
+  this.ANGLE270 = Math.floor(this.ANGLE90 * 3);
+  this.ANGLE360 = Math.floor(this.ANGLE60 * 6);
   this.ANGLE0 = 0;
-  this.ANGLE5 = Math.floor(this.ANGLE30/6);
-  this.ANGLE3 = Math.floor(this.ANGLE30/10);
-  this.ANGLE10 = Math.floor(this.ANGLE5*2);
-  this.ANGLE45 = Math.floor(this.ANGLE15*3);
+  this.ANGLE5 = Math.floor(this.ANGLE30 / 6);
+  this.ANGLE3 = Math.floor(this.ANGLE30 / 10);
+  this.ANGLE10 = Math.floor(this.ANGLE5 * 2);
+  this.ANGLE45 = Math.floor(this.ANGLE15 * 3);
   
-  // trigonometric tables (the ones with "I" such as ISiTable are "Inverse" table)
-  this.fSinTable=[];
-  this.fISinTable=[];
-  this.fCosTable=[];
-  this.fICosTable=[];
-  this.fTanTable=[];
-  this.fITanTable=[];
-  this.fFishTable=[];
-  this.fXStepTable=[];
-  this.fYStepTable=[];
+  // Trigo Table, Normal & Inverse
+  this.fSinTable = [];
+  this.fISinTable = [];
+  this.fCosTable = [];
+  this.fICosTable = [];
+  this.fTanTable = [];
+  this.fITanTable = [];
+  this.fFishTable = [];
+  this.fXStepTable = [];
+  this.fYStepTable = [];
 
-  // player's attributes
-  this.fPlayerX = 100;
-  this.fPlayerY = 160;
-  this.fPlayerArc = this.ANGLE60;
-  this.fPlayerDistanceToTheProjectionPlane = 277;
-  this.fPlayerHeight = 32;
-  this.fPlayerSpeed = 16;
+  // Player
+  this.pX = 100;
+  this.pY = 160;
+  this.pAngle = 0;
+  this.pDTPP = (this.PROJECTIONPLANEWIDTH / 2) / Math.tan(30 * Math.PI / 180); // Player distance to Projection Plane
+  this.pHeight = 32;
+  this.pSpeed = 4;
   
   // Half of the screen height
-  this.fProjectionPlaneYCenter = this.PROJECTIONPLANEHEIGHT/2;
+  this.fProjectionPlaneYCenter = this.PROJECTIONPLANEHEIGHT / 2;
+  this.fProjectionPlaneXCenter = this.PROJECTIONPLANEHEIGHT / 2;
 
   // the following variables are used to keep the player coordinate in the overhead map
   this.fPlayerMapX;
@@ -65,206 +62,171 @@ function GameWindow(canvas) {
   this.fMinimapWidth;
 
   // movement flag
-  this.fKeyUp=false;
-  this.fKeyDown=false;
-  this.fKeyLeft=false; 
-  this.fKeyRight=false;
-  this.fKeyLookUp=false;
-  this.fKeyLookDown=false;
-  this.fKeyFlyUp=false;
-  this.fKeyFlyDown=false;
-    
-  // 2 dimensional map
-  this.fMap=[];
-  this.MAP_WIDTH;
-  this.MAP_HEIGHT; 
+  this.fKeyUp = false;
+  this.fKeyDown = false;
+  this.fKeyLeft = false; 
+  this.fKeyRight = false;
+  this.fKeyLookUp = false;
+  this.fKeyLookDown = false;
+  this.fKeyFlyUp = false;
+  this.fKeyFlyDown = false;
+  
+  this.fMap = map.replace(/\s+/g, '');
+  this.MAP_WIDTH = mapWidth;
+  this.MAP_HEIGHT = this.fMap.length / this.MAP_WIDTH;
   
   this.animationFrameID;
   
   this.fWallTextureCanvas;
   this.fWallTexturePixels;
-  this.fBackgroundImageArc=0;
+  this.fBackgroundImageArc = 0;
   
-  this.baseLightValue=180;
-  this.baseLightValueDelta=1;
+  this.baseLightValue = 180;
+  this.baseLightValueDelta = 1;
 }
 
 GameWindow.prototype = 
 {
+  loadImage : function(image, onTextureLoaded, texture_path)
+  {
+    image.crossOrigin = "Anonymous";
+    image.onload = onTextureLoaded;
+    image.src = texture_path;
+  },
+
   loadWallTexture : function()
   {
-    this.fWallTexture= new Image();
-    this.fWallTexture.crossOrigin = "Anonymous";
-
-    this.fWallTexture.onload = this.onWallTextureLoaded.bind(this);
-      
-    this.fWallTexture.src = "/assets/Wall-1.png";
-
+    this.fWallTexture = new Image();
+    this.loadImage(this.fWallTexture, this.onWallTextureLoaded.bind(this), "/assets/Wall-5.png")
   },
-  
+
   loadFloorTexture : function()
   {
-    this.fFloorTexture= new Image();
-    this.fFloorTexture.crossOrigin = "Anonymous";
-
-    this.fFloorTexture.onload = this.onFloorTextureLoaded.bind(this);
-      
-    this.fFloorTexture.src = "/assets/Wall-2.png";
-  },  
-  
+    this.fFloorTexture = new Image();
+    this.loadImage(this.fFloorTexture, this.onFloorTextureLoaded.bind(this), "/assets/Wall-2.png")
+  },
+ 
   loadCeilingTexture : function()
   {
-    this.fCeilingTexture= new Image();
-    this.fCeilingTexture.crossOrigin = "Anonymous";
-
-    this.fCeilingTexture.onload = this.onCeilingTextureLoaded.bind(this);
-      
-    this.fCeilingTexture.src = "/assets/Wall-3.png"; 
-  },  
+    this.fCeilingTexture = new Image();
+    this.loadImage(this.fCeilingTexture, this.onCeilingTextureLoaded.bind(this), "/assets/Wall-3.png")
+  },
   
   loadBackgroundTexture : function()
   {
-    this.fBackgroundTexture= new Image();
-    this.fBackgroundTexture.crossOrigin = "Anonymous";
-
-    this.fBackgroundTexture.onload = this.onBackgroundTextureLoaded.bind(this);
-      
-    this.fBackgroundTexture.src = "/assets/Wall-4.png";
-  },  
-  
-  onWallTextureLoaded : function(image)
-  {
-    // console.log("onWallTextureLoaded image="+this.fWallTexture+" image.width="+this.fWallTexture.width);
-    // create an in-memory canvas
-    this.fWallTextureBuffer = document.createElement('canvas');   
-    this.fWallTextureBuffer.width = this.fWallTexture.width;
-    this.fWallTextureBuffer.height = this.fWallTexture.height;
-    this.fWallTextureBuffer.getContext('2d').drawImage(this.fWallTexture, 0, 0);
-    
-    var imageData = this.fWallTextureBuffer.getContext('2d').getImageData(0, 0, this.fWallTextureBuffer.width, this.fWallTextureBuffer.height);
-    this.fWallTexturePixels = imageData.data;
-    //console.log("onWallTextureLoaded imageData="+this.fWallTexturePixels);
-  },
-
-  onFloorTextureLoaded : function(image)
-  {
-    // console.log("onFloorTextureLoaded image="+this.fFloorTexture+" image.width="+this.fFloorTexture.width);
-    // create an in-memory canvas
-    this.fFloorTextureBuffer = document.createElement('canvas');    
-    this.fFloorTextureBuffer.width = this.fFloorTexture.width;
-    this.fFloorTextureBuffer.height = this.fFloorTexture.height;
-    this.fFloorTextureBuffer.getContext('2d').drawImage(this.fFloorTexture, 0, 0);
-    
-    var imageData = this.fFloorTextureBuffer.getContext('2d').getImageData(0, 0, this.fFloorTextureBuffer.width, this.fFloorTextureBuffer.height);
-    this.fFloorTexturePixels = imageData.data;
-    //console.log("onWallTextureLoaded imageData="+this.fWallTexturePixels);
+    this.fBackgroundTexture = new Image();
+    this.loadImage(this.fBackgroundTexture, this.onBackgroundTextureLoaded.bind(this), "/assets/Wall-4.png")
   },
   
-  onCeilingTextureLoaded : function(image)
+  loadBuffer : function(bufferCanvas, texture) {
+    bufferCanvas.width = texture.width;
+    bufferCanvas.height = texture.height;
+    bufferCanvas.getContext('2d').drawImage(texture, 0, 0);
+  },
+
+  onWallTextureLoaded : function()
   {
-    // console.log("onCeilingTextureLoaded image="+this.fCeilingTexture+" image.width="+this.fCeilingTexture.width);
-    // create an in-memory canvas
+    this.fWallTextureBuffer = document.createElement('canvas');
+    this.loadBuffer(this.fWallTextureBuffer, this.fWallTexture);
+    this.fWallTexturePixels = this.fWallTextureBuffer.getContext('2d').getImageData(0, 0, this.fWallTextureBuffer.width, this.fWallTextureBuffer.height).data;
+  },
+
+  onFloorTextureLoaded : function()
+  {
+    this.fFloorTextureBuffer = document.createElement('canvas');
+    this.loadBuffer(this.fFloorTextureBuffer, this.fFloorTexture);
+    this.fFloorTexturePixels = this.fFloorTextureBuffer.getContext('2d').getImageData(0, 0, this.fFloorTextureBuffer.width, this.fFloorTextureBuffer.height).data;
+  },
+  
+  onCeilingTextureLoaded : function()
+  {
     this.fCeilingTextureBuffer = document.createElement('canvas');    
-    this.fCeilingTextureBuffer.width = this.fCeilingTexture.width;
-    this.fCeilingTextureBuffer.height = this.fCeilingTexture.height;
-    this.fCeilingTextureBuffer.getContext('2d').drawImage(this.fFloorTexture, 0, 0);
-    
-    var imageData = this.fCeilingTextureBuffer.getContext('2d').getImageData(0, 0, this.fCeilingTextureBuffer.width, this.fCeilingTextureBuffer.height);
-    this.fCeilingTexturePixels = imageData.data;
+    this.loadBuffer(this.fCeilingTextureBuffer, this.fCeilingTexture);
+    this.fCeilingTexturePixels = this.fCeilingTextureBuffer.getContext('2d').getImageData(0, 0, this.fCeilingTextureBuffer.width, this.fCeilingTextureBuffer.height).data;
   },  
   
-  onBackgroundTextureLoaded : function(image)
+  onBackgroundTextureLoaded : function()
   {
-    // console.log("onBackgroundTextureLoaded image="+this.fBackgroundTexture+" image.width="+this.fBackgroundTexture.width);
-    // create an in-memory canvas
     this.fBackgroundTextureBuffer = document.createElement('canvas');   
-    this.fBackgroundTextureBuffer.width = this.fBackgroundTexture.width;
-    this.fBackgroundTextureBuffer.height = this.fBackgroundTexture.height;
-    this.fBackgroundTextureBuffer.getContext('2d').drawImage(this.fBackgroundTexture, 0, 0);
-    
-    var imageData = this.fBackgroundTextureBuffer.getContext('2d').getImageData(0, 0, this.fBackgroundTextureBuffer.width, this.fBackgroundTextureBuffer.height);
-    this.fBackgroundTexturePixels = imageData.data;
-    //console.log("onWallTextureLoaded imageData="+this.fWallTexturePixels);
+    this.loadBuffer(this.fBackgroundTextureBuffer, this.fBackgroundTexture);
+    this.fBackgroundTexturePixels = this.fBackgroundTextureBuffer.getContext('2d').getImageData(0, 0, this.fBackgroundTextureBuffer.width, this.fBackgroundTextureBuffer.height).data;
   },  
-  
-  //*******************************************************************//
-  //* Convert arc (degree) to radian
-  //*******************************************************************//
+
   arcToRad: function(arcAngle)
   {
-    return ((arcAngle*Math.PI)/this.ANGLE180);    
+    return ((arcAngle * Math.PI) / this.ANGLE180);    
   },
   
+  // This function is only used on the minimap to draw a line
   drawLine: function(startX, startY, endX, endY, red, green, blue, alpha)
   {
-    var bytesPerPixel=4;
+    var bytesPerPixel = 4;
     // changes in x and y
     var xIncrement, yIncrement;  
 
-
     // calculate Ydistance  
-    var dy=endY-startY;             
+    var dy = endY - startY;             
     
     // if moving negative dir (up)  
     // note that we can simplify this function if we can guarantee that
     // the line will always move in one direction only
-    if (dy<0)             
+    if (dy < 0)             
     {
       // get abs
-      dy=-dy;
+      dy =- dy;
       // negative movement
-      yIncrement=-this.offscreenCanvasPixels.width*bytesPerPixel;
+      yIncrement =- this.bufferCanvasPixels.width * bytesPerPixel;
     }
     else
-      yIncrement=this.offscreenCanvasPixels.width*bytesPerPixel;
+      yIncrement = this.bufferCanvasPixels.width * bytesPerPixel;
                 
     // calc x distance                      
-    var dx=endX-startX;         
+    var dx = endX - startX;         
     
     // if negative dir (left)
     // note that we can simplify this function if we can guarantee that
     // the line will always move in one direction only
-    if (dx<0)
+    if (dx < 0)
     {
-      dx=-dx;
-      xIncrement=-bytesPerPixel;
+      dx =- dx;
+      xIncrement =- bytesPerPixel;
     }
     else
-      xIncrement=bytesPerPixel;
+      xIncrement = bytesPerPixel;
 
     // deflation    
-    var error=0;
-    var targetIndex=(bytesPerPixel*this.offscreenCanvasPixels.width)*startY+(bytesPerPixel*startX);
+    var error = 0;
+    var targetIndex = (bytesPerPixel * this.bufferCanvasPixels.width) * startY + (bytesPerPixel * startX);
     
     // if movement in x direction is larger than in y
     // ie: width > height
     // we draw each row one by one
-    if (dx>dy)
+    if (dx > dy)
     {                     
       // length = width +1
-      var length=dx;
+      var length = dx;
       
-      for (var i=0;i<length;i++)
+      for (var i = 0; i < length; i++)
       {
-        if (targetIndex<0)
+        if (targetIndex < 0)
           break;
           
-        this.offscreenCanvasPixels.data[targetIndex]=red;
-        this.offscreenCanvasPixels.data[targetIndex+1]=green;
-        this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-        this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
+        this.bufferCanvasPixels.data[targetIndex] = red;
+        this.bufferCanvasPixels.data[targetIndex + 1] = green;
+        this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+        this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
         
         // either move left/right
-        targetIndex+=xIncrement;           
+        targetIndex += xIncrement;           
         // cumulate error term
-        error+=dy;
+        error += dy;
                     
         // is it time to move y direction (chage row)                           
-        if (error>=dx)
+        if (error >= dx)
         {
-          error-=dx;
+          error -= dx;
           // move to next row
-          targetIndex+=yIncrement;
+          targetIndex += yIncrement;
         }
       }
     }
@@ -274,63 +236,61 @@ GameWindow.prototype =
     // note that a diagonal line will go here because xdiff = ydiff
     else //(YDiff>=XDiff)
     {                       
-      var length=dy;
+      var length = dy;
       
-      for (var i=0;i<length;i++)
+      for (var i = 0; i < length; i++)
       {       
-        if (targetIndex<0)
+        if (targetIndex < 0)
           break;
           
           
-        this.offscreenCanvasPixels.data[targetIndex]=red;
-        this.offscreenCanvasPixels.data[targetIndex+1]=green;
-        this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-        this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
+        this.bufferCanvasPixels.data[targetIndex] = red;
+        this.bufferCanvasPixels.data[targetIndex + 1] = green;
+        this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+        this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
         
-        targetIndex+=yIncrement;
-        error+=dx;
+        targetIndex += yIncrement;
+        error += dx;
         
-        if (error>=dy)
+        if (error >= dy)
         {
-          error-=dy;
-          targetIndex+=xIncrement;
+          error -= dy;
+          targetIndex += xIncrement;
         }
       }
     }
   },
-  
 
-  
   drawWallSliceRectangleTinted: function(x, y, width, height, xOffset, brightnessLevel)
   {
     // wait until the texture loads
-    if (this.fWallTextureBuffer==undefined)
+    if (this.fWallTextureBuffer == undefined)
       return;
     
-    var dy=height;
-    x=Math.floor(x);
-    y=Math.floor(y);
-    xOffset=Math.floor(xOffset);
-    var bytesPerPixel=4;
+    var dy = height;
+    x = Math.floor(x);
+    y = Math.floor(y);
+    xOffset = Math.floor(xOffset);
+    var bytesPerPixel = 4;
     
-    var sourceIndex=(bytesPerPixel*xOffset);
-    var lastSourceIndex=sourceIndex+(this.fWallTextureBuffer.width*this.fWallTextureBuffer.height*bytesPerPixel);
+    var sourceIndex = (bytesPerPixel * xOffset);
+    var lastSourceIndex = sourceIndex + (this.fWallTextureBuffer.width * this.fWallTextureBuffer.height * bytesPerPixel);
     
     //var targetCanvasPixels=this.canvasContext.createImageData(0, 0, width, height);
-    var targetIndex=(this.offscreenCanvasPixels.width*bytesPerPixel)*y+(bytesPerPixel*x);
+    var targetIndex = (this.bufferCanvasPixels.width * bytesPerPixel) * y + (bytesPerPixel * x);
     
     
     var heightToDraw = height;
     // clip bottom
-    if (y+heightToDraw>this.offscreenCanvasPixels.height)
-      heightToDraw=this.offscreenCanvasPixels.height-y;
+    if (y + heightToDraw > this.bufferCanvasPixels.height)
+      heightToDraw = this.bufferCanvasPixels.height - y;
 
     
-    var yError=0;   
+    var yError = 0;
     
     // we need to check this, otherwise, program might crash when trying
     // to fetch the shade if this condition is true (possible if height is 0)
-    if (heightToDraw<0)
+    if (heightToDraw < 0)
       return;
 
     // we're going to draw the first row, then move down and draw the next row
@@ -355,60 +315,59 @@ GameWindow.prototype =
 
       // Cheap shading trick by using brightnessLevel (which doesn't really have to correspond to "brightness") 
       // to alter colors.  You can use logarithmic falloff or linear falloff to produce some interesting effect
-      var red=Math.floor(this.fWallTexturePixels[sourceIndex]*brightnessLevel);
-      var green=Math.floor(this.fWallTexturePixels[sourceIndex+1]*brightnessLevel);
-      var blue=Math.floor(this.fWallTexturePixels[sourceIndex+2]*brightnessLevel);
-      var alpha=Math.floor(this.fWallTexturePixels[sourceIndex+3]);
+      var red = Math.floor(this.fWallTexturePixels[sourceIndex] * brightnessLevel);
+      var green = Math.floor(this.fWallTexturePixels[sourceIndex + 1] * brightnessLevel);
+      var blue = Math.floor(this.fWallTexturePixels[sourceIndex + 2] * brightnessLevel);
+      var alpha = Math.floor(this.fWallTexturePixels[sourceIndex + 3]);
       
       // while there's a row to draw & not end of drawing area
-      while (yError>=this.fWallTextureBuffer.width)
+      while (yError >= this.fWallTextureBuffer.width)
       {                  
-        yError-=this.fWallTextureBuffer.width;
-        this.offscreenCanvasPixels.data[targetIndex]=red;
-        this.offscreenCanvasPixels.data[targetIndex+1]=green;
-        this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-        this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
-        targetIndex+=(bytesPerPixel*this.offscreenCanvasPixels.width);
+        yError -= this.fWallTextureBuffer.width;
+        this.bufferCanvasPixels.data[targetIndex] = red;
+        this.bufferCanvasPixels.data[targetIndex + 1] = green;
+        this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+        this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
+        targetIndex += (bytesPerPixel * this.bufferCanvasPixels.width);
         // clip bottom (just return if we reach bottom)
         heightToDraw--;
-        if (heightToDraw<1)
+        if (heightToDraw < 1)
           return;
       } 
-      sourceIndex+=(bytesPerPixel*this.fWallTextureBuffer.width);
-      if (sourceIndex>lastSourceIndex)
-        sourceIndex=lastSourceIndex;      
+      sourceIndex += (bytesPerPixel * this.fWallTextureBuffer.width);
+      if (sourceIndex > lastSourceIndex)
+        sourceIndex = lastSourceIndex;      
     }
 
   },  
   
-  clearOffscreenCanvas : function()
+  clearbufferCanvas : function()
   {
     // no need to do anything because the screen will be redrwan fully anyway
   },
   
-  
-  blitOffscreenCanvas : function()
+  blitbufferCanvas : function()
   {   
-
-    this.canvasContext.putImageData(this.offscreenCanvasPixels,0,0);
+    this.canvasContext.putImageData(this.bufferCanvasPixels, 0, 0);
   },
   
+  // For minimap only
   drawFillRectangle: function(x, y, width, height, red, green, blue, alpha)
   {
     var bytesPerPixel=4;
     //var targetCanvasPixels=this.canvasContext.createImageData(0, 0, width, height);
-    var targetIndex=(bytesPerPixel*this.offscreenCanvasPixels.width)*y+(bytesPerPixel*x);
+    var targetIndex=(bytesPerPixel*this.bufferCanvasPixels.width)*y+(bytesPerPixel*x);
     for (var h=0; h<height; h++)
     {
       for (var w=0; w<width; w++)
       {
-        this.offscreenCanvasPixels.data[targetIndex]=red;
-        this.offscreenCanvasPixels.data[targetIndex+1]=green;
-        this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-        this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
+        this.bufferCanvasPixels.data[targetIndex]=red;
+        this.bufferCanvasPixels.data[targetIndex+1]=green;
+        this.bufferCanvasPixels.data[targetIndex+2]=blue;
+        this.bufferCanvasPixels.data[targetIndex+3]=alpha;
         targetIndex+=bytesPerPixel;
       }
-      targetIndex+=(bytesPerPixel*(this.offscreenCanvasPixels.width-width));
+      targetIndex+=(bytesPerPixel*(this.bufferCanvasPixels.width-width));
     } 
   },
   
@@ -417,19 +376,18 @@ GameWindow.prototype =
     this.loadWallTexture();
     this.loadFloorTexture();
     this.loadCeilingTexture();
-    var i;
-    var radian;
-    this.fSinTable = new Array(this.ANGLE360+1);
-    this.fISinTable = new Array(this.ANGLE360+1);
-    this.fCosTable = new Array(this.ANGLE360+1);
-    this.fICosTable = new Array(this.ANGLE360+1);
-    this.fTanTable = new Array(this.ANGLE360+1);
-    this.fITanTable = new Array(this.ANGLE360+1);
-    this.fFishTable = new Array(this.ANGLE360+1);
-    this.fXStepTable = new Array(this.ANGLE360+1);
-    this.fYStepTable = new Array(this.ANGLE360+1);
+    this.fSinTable = new Array(this.ANGLE360 + 1);
+    this.fISinTable = new Array(this.ANGLE360 + 1);
+    this.fCosTable = new Array(this.ANGLE360 + 1);
+    this.fICosTable = new Array(this.ANGLE360 + 1);
+    this.fTanTable = new Array(this.ANGLE360 + 1);
+    this.fITanTable = new Array(this.ANGLE360 + 1);
+    this.fFishTable = new Array(this.ANGLE360 + 1);
+    this.fXStepTable = new Array(this.ANGLE360 + 1);
+    this.fYStepTable = new Array(this.ANGLE360 + 1);
 
-    for (i=0; i<=this.ANGLE360;i++)
+    let radian;
+    for (let i=0; i <= this.ANGLE360; i++)
     {
       // Populate tables with their radian values.
       // (The addition of 0.0001 is a kludge to avoid divisions by 0. Removing it will produce unwanted holes in the wall when a ray is at 0, 90, 180, or 270 degree angles)
@@ -487,42 +445,13 @@ GameWindow.prototype =
     }
 
     // Create table for fixing FISHBOWL distortion
-    for (i=-this.ANGLE30; i<=this.ANGLE30; i++)
+    for (let i =- this.ANGLE30; i <= this.ANGLE30; i++)
     {
       radian = this.arcToRad(i);
       // we don't have negative angle, so make it start at 0
       // this will give range from column 0 to 319 (PROJECTONPLANEWIDTH) since we only will need to use those range
-      this.fFishTable[i+this.ANGLE30] = (1.0/Math.cos(radian));
-    }
-
-        // CREATE A SIMPLE MAP.
-    // Use string for elegance (easier to see).  W=Wall, O=Opening
-        
-    var map3=
-                'WWWWWWWWWWWWWWWWWWWW'+
-                'WOOOOOOOOOOOOOOOOOOW'+
-                'WOOWOWOWOOOWOOWWOWOW'+
-                'WOOOOOOOWOOWOOOOWWOW'+
-                'WOOWOWOOWOOWOOWWWWOW'+
-                'WOOWOWWOWOOWOOWOOWOW'+
-                'WOOWOOWOWOOWOOWOOWOW'+
-                'WOOOWOWOWOOWOOOOOWOW'+
-                'WOOOWOWOWOOWOOWOOWOW'+
-                'WOOOWWWOWOOWOOWWWWOW'+
-                'WOOOOOOOOOOOOOOOOOOW'+
-                'WOOWOWOWOOOWOOWWOWOW'+
-                'WOOOOOOOWOOWOOOOOWOW'+
-                'WOOWOWOWOOOWOOWWOWOW'+
-                'WOOOOOOOWOOWOOOOOWOW'+
-                'WOOWOWOWOOOWOOWWOWOW'+
-                'WOOOOOOOWOOOOOOOOWOW'+
-                'WOOWOWOWOOOWOOWWOWOW'+
-                'WOOOOOOOOOOWOOOOOOOW'+       
-                'WWWWWWWWWWWWWWWWWWWW';
-    // Remove spaces and tabs
-        this.fMap=map3.replace(/\s+/g, '');
-    this.MAP_WIDTH=20;
-    this.MAP_HEIGHT=20;     
+      this.fFishTable[i + this.ANGLE30] = (1.0 / Math.cos(radian));
+    }  
   },
   
   //*******************************************************************//
@@ -549,8 +478,8 @@ GameWindow.prototype =
       }
     }
     // Draw player position on the overhead map
-    this.fPlayerMapX=this.PROJECTIONPLANEWIDTH+((this.fPlayerX/this.TILE_SIZE) * this.fMinimapWidth);
-    this.fPlayerMapY=((this.fPlayerY/this.TILE_SIZE) * this.fMinimapWidth);
+    this.fPlayerMapX=this.PROJECTIONPLANEWIDTH+((this.pX/this.TILE_SIZE) * this.fMinimapWidth);
+    this.fPlayerMapY=((this.pY/this.TILE_SIZE) * this.fMinimapWidth);
     
   },
   
@@ -619,14 +548,11 @@ GameWindow.prototype =
     this.drawLine(
       Math.floor(this.fPlayerMapX), 
       Math.floor(this.fPlayerMapY), 
-      Math.floor(this.fPlayerMapX+this.fCosTable[this.fPlayerArc]*10),
-      Math.floor(this.fPlayerMapY+this.fSinTable[this.fPlayerArc]*10), 
+      Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle]*10),
+      Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle]*10), 
       255,0,0,255);
   
   },
-  
-
-  
   
   //*******************************************************************//
   //* Renderer
@@ -653,7 +579,7 @@ GameWindow.prototype =
     var castArc, castColumn;
     var DEBUG=false;
     
-    castArc = this.fPlayerArc;
+    castArc = this.pAngle;
     // field of view is 60 degree with the point of view (player's direction in the middle)
     // 30  30
     //    ^
@@ -678,18 +604,18 @@ GameWindow.prototype =
         // truncuate then add to get the coordinate of the FIRST grid (horizontal
         // wall) that is in front of the player (this is in pixel unit)
         // ROUNDED DOWN
-        horizontalGrid = Math.floor(this.fPlayerY/this.TILE_SIZE)*this.TILE_SIZE  + this.TILE_SIZE;
+        horizontalGrid = Math.floor(this.pY/this.TILE_SIZE)*this.TILE_SIZE  + this.TILE_SIZE;
 
         // compute distance to the next horizontal wall
         distToNextHorizontalGrid = this.TILE_SIZE;
 
-        var xtemp = this.fITanTable[castArc]*(horizontalGrid-this.fPlayerY);
+        var xtemp = this.fITanTable[castArc]*(horizontalGrid-this.pY);
         // we can get the vertical distance to that wall by
         // (horizontalGrid-playerY)
         // we can get the horizontal distance to that wall by
         // 1/tan(arc)*verticalDistance
         // find the x interception to that wall
-        xIntersection = xtemp + this.fPlayerX;
+        xIntersection = xtemp + this.pX;
         if (DEBUG)
         {       
           console.log("castArc="+castArc+" in CHECKPOINT A, horizontalGrid="+horizontalGrid+" distToNextHorizontalGrid="+distToNextHorizontalGrid+
@@ -699,11 +625,11 @@ GameWindow.prototype =
       // Else, the ray is facing up
       else
       {
-        horizontalGrid = Math.floor(this.fPlayerY/this.TILE_SIZE)*this.TILE_SIZE;
+        horizontalGrid = Math.floor(this.pY/this.TILE_SIZE)*this.TILE_SIZE;
         distToNextHorizontalGrid = -this.TILE_SIZE;
 
-        var xtemp = this.fITanTable[castArc]*(horizontalGrid - this.fPlayerY);
-        xIntersection = xtemp + this.fPlayerX;
+        var xtemp = this.fITanTable[castArc]*(horizontalGrid - this.pY);
+        xIntersection = xtemp + this.pX;
 
         horizontalGrid--;
         if (DEBUG)
@@ -730,7 +656,7 @@ GameWindow.prototype =
           var mapIndex=Math.floor(yGridIndex*this.MAP_WIDTH+xGridIndex);
           if (DEBUG)
           {                   
-            console.log("this.fPlayerY="+this.fPlayerY+" this.fPlayerX="+this.fPlayerX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
+            console.log("this.pY="+this.pY+" this.pX="+this.pX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
             console.log("this.fITanTable="+this.fITanTable[castArc]);
           }
           
@@ -745,7 +671,7 @@ GameWindow.prototype =
           // If the grid is not an Opening, then stop
           else if (this.fMap.charAt(mapIndex)!='O')
           {
-            distToHorizontalGridBeingHit  = (xIntersection-this.fPlayerX)*this.fICosTable[castArc];
+            distToHorizontalGridBeingHit  = (xIntersection-this.pX)*this.fICosTable[castArc];
             break;
           }
           // Else, keep looking.  At this point, the ray is not blocked, extend the ray to the next grid
@@ -761,11 +687,11 @@ GameWindow.prototype =
       // FOLLOW X RAY
       if (castArc < this.ANGLE90 || castArc > this.ANGLE270)
       {
-        verticalGrid = this.TILE_SIZE + Math.floor(this.fPlayerX/this.TILE_SIZE)*this.TILE_SIZE;
+        verticalGrid = this.TILE_SIZE + Math.floor(this.pX/this.TILE_SIZE)*this.TILE_SIZE;
         distToNextVerticalGrid = this.TILE_SIZE;
 
-        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.fPlayerX);
-        yIntersection = ytemp + this.fPlayerY;
+        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.pX);
+        yIntersection = ytemp + this.pY;
         if (DEBUG)
         {       
           
@@ -776,11 +702,11 @@ GameWindow.prototype =
       // RAY FACING LEFT
       else
       {
-        verticalGrid = Math.floor(this.fPlayerX/this.TILE_SIZE)*this.TILE_SIZE;
+        verticalGrid = Math.floor(this.pX/this.TILE_SIZE)*this.TILE_SIZE;
         distToNextVerticalGrid = -this.TILE_SIZE;
 
-        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.fPlayerX);
-        yIntersection = ytemp + this.fPlayerY;
+        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.pX);
+        yIntersection = ytemp + this.pY;
 
         verticalGrid--;
         if (DEBUG)
@@ -807,7 +733,7 @@ GameWindow.prototype =
           
           if (DEBUG)
           {
-            console.log("this.fPlayerY="+this.fPlayerY+" this.fPlayerX="+this.fPlayerX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
+            console.log("this.pY="+this.pY+" this.pX="+this.pX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
             console.log("this.fITanTable="+this.fITanTable[castArc]);
           }
           
@@ -820,7 +746,7 @@ GameWindow.prototype =
           }
           else if (this.fMap.charAt(mapIndex)!='O')
           {
-            distToVerticalGridBeingHit =(yIntersection-this.fPlayerY)*this.fISinTable[castArc];
+            distToVerticalGridBeingHit =(yIntersection-this.pY)*this.fISinTable[castArc];
             break;
           }
           else
@@ -852,9 +778,9 @@ GameWindow.prototype =
         dist=distToHorizontalGridBeingHit/this.fFishTable[castColumn];
 //        dist_y /= convert_to_float(GLfishTable[GLcastColumn]);
         distortedDistance=dist;
-        var ratio = this.fPlayerDistanceToTheProjectionPlane/dist;
-        bottomOfWall = (ratio * this.fPlayerHeight + this.fProjectionPlaneYCenter);
-        var scale = (this.fPlayerDistanceToTheProjectionPlane*this.WALL_HEIGHT/dist); 
+        var ratio = this.pDTPP/dist;
+        bottomOfWall = (ratio * this.pHeight + this.fProjectionPlaneYCenter);
+        var scale = (this.pDTPP*this.WALL_HEIGHT/dist); 
         topOfWall = bottomOfWall - scale;
             /*dist_y /= convert_to_float(GLfishTable[GLcastColumn]);
             float ratio = GLplayerDistance/dist_y;
@@ -881,9 +807,9 @@ GameWindow.prototype =
 
         xOffset=yIntersection%this.TILE_SIZE;
         
-        var ratio = this.fPlayerDistanceToTheProjectionPlane/dist;
-        bottomOfWall = (ratio * this.fPlayerHeight + this.fProjectionPlaneYCenter);
-        var scale = (this.fPlayerDistanceToTheProjectionPlane*this.WALL_HEIGHT/dist); 
+        var ratio = this.pDTPP/dist;
+        bottomOfWall = (ratio * this.pHeight + this.fProjectionPlaneYCenter);
+        var scale = (this.pDTPP*this.WALL_HEIGHT/dist); 
         topOfWall = bottomOfWall - scale;
         
         if (DEBUG)
@@ -895,7 +821,7 @@ GameWindow.prototype =
       // correct distance (compensate for the fishbown effect)
       //dist /= this.fFishTable[castColumn];
       // projected_wall_height/wall_height = fPlayerDistToProjectionPlane/dist;
-      //var projectedWallHeight=(this.WALL_HEIGHT*this.fPlayerDistanceToTheProjectionPlane/dist);
+      //var projectedWallHeight=(this.WALL_HEIGHT*this.pDTPP/dist);
       //bottomOfWall = this.fProjectionPlaneYCenter+(projectedWallHeight*0.5);
       //topOfWall = this.fProjectionPlaneYCenter-(projectedWallHeight*0.5);
 
@@ -929,12 +855,12 @@ GameWindow.prototype =
       {
         // find the first bit so we can just add the width to get the
         // next row (of the same column)
-        var targetIndex=lastBottomOfWall*(this.offscreenCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
+        var targetIndex=lastBottomOfWall*(this.bufferCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
         for (var row=lastBottomOfWall;row<this.PROJECTIONPLANEHEIGHT;row++) 
         {                          
           
-          var straightDistance=(this.fPlayerHeight)/(row-projectionPlaneCenterY)*
-            this.fPlayerDistanceToTheProjectionPlane;
+          var straightDistance=(this.pHeight)/(row-projectionPlaneCenterY)*
+            this.pDTPP;
           
           var actualDistance=straightDistance*
               (this.fFishTable[castColumn]);
@@ -943,8 +869,8 @@ GameWindow.prototype =
           var xEnd = Math.floor(actualDistance * this.fCosTable[castArc]);
     
           // Translate relative to viewer coordinates:
-          xEnd+=this.fPlayerX;
-          yEnd+=this.fPlayerY;
+          xEnd+=this.pX;
+          yEnd+=this.pY;
 
           
           // Get the tile intersected by ray:
@@ -971,13 +897,13 @@ GameWindow.prototype =
             var alpha=Math.floor(this.fFloorTexturePixels[sourceIndex+3]);            
             
             // Draw the pixel 
-            this.offscreenCanvasPixels.data[targetIndex]=red;
-            this.offscreenCanvasPixels.data[targetIndex+1]=green;
-            this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-            this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
+            this.bufferCanvasPixels.data[targetIndex]=red;
+            this.bufferCanvasPixels.data[targetIndex+1]=green;
+            this.bufferCanvasPixels.data[targetIndex+2]=blue;
+            this.bufferCanvasPixels.data[targetIndex+3]=alpha;
             
             // Go to the next pixel (directly under the current pixel)
-            targetIndex+=(bytesPerPixel*this.offscreenCanvasPixels.width);                      
+            targetIndex+=(bytesPerPixel*this.bufferCanvasPixels.width);                      
           }                                                              
         } 
       }
@@ -991,20 +917,20 @@ GameWindow.prototype =
         // next row (of the same column)
 
             
-        var targetIndex=lastTopOfWall*(this.offscreenCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
+        var targetIndex=lastTopOfWall*(this.bufferCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
         for (var row=lastTopOfWall;row>=0;row--) 
         {                          
-          var ratio=(this.WALL_HEIGHT-this.fPlayerHeight)/(projectionPlaneCenterY-row);
+          var ratio=(this.WALL_HEIGHT-this.pHeight)/(projectionPlaneCenterY-row);
 
-          var diagonalDistance=Math.floor((this.fPlayerDistanceToTheProjectionPlane*ratio)*
+          var diagonalDistance=Math.floor((this.pDTPP*ratio)*
             (this.fFishTable[castColumn]));
 
           var yEnd = Math.floor(diagonalDistance * this.fSinTable[castArc]);
           var xEnd = Math.floor(diagonalDistance * this.fCosTable[castArc]);
     
           // Translate relative to viewer coordinates:
-          xEnd+=this.fPlayerX;
-          yEnd+=this.fPlayerY;
+          xEnd+=this.pX;
+          yEnd+=this.pY;
 
           // Get the tile intersected by ray:
           var cellX = Math.floor(xEnd / this.TILE_SIZE);
@@ -1031,13 +957,13 @@ GameWindow.prototype =
             var alpha=Math.floor(this.fCeilingTexturePixels[sourceIndex+3]);            
             
             // Draw the pixel 
-            this.offscreenCanvasPixels.data[targetIndex]=red;
-            this.offscreenCanvasPixels.data[targetIndex+1]=green;
-            this.offscreenCanvasPixels.data[targetIndex+2]=blue;
-            this.offscreenCanvasPixels.data[targetIndex+3]=alpha;
+            this.bufferCanvasPixels.data[targetIndex]=red;
+            this.bufferCanvasPixels.data[targetIndex+1]=green;
+            this.bufferCanvasPixels.data[targetIndex+2]=blue;
+            this.bufferCanvasPixels.data[targetIndex+3]=alpha;
             
             // Go to the next pixel (directly above the current pixel)
-            targetIndex-=(bytesPerPixel*this.offscreenCanvasPixels.width);                      
+            targetIndex-=(bytesPerPixel*this.bufferCanvasPixels.width);                      
           }                                                              
         } 
       }       
@@ -1053,33 +979,33 @@ GameWindow.prototype =
   // This function is called every certain interval (see this.frameRate) to handle input and render the screen
   update : function() 
   {
-    this.clearOffscreenCanvas();    
+    this.clearbufferCanvas();    
     this.drawOverheadMap();
     this.raycast();
     this.drawPlayerPOVOnOverheadMap();
-    this.blitOffscreenCanvas();
+    this.blitbufferCanvas();
     var playerArcDelta=0;
     
     //console.log("update");
     if (this.fKeyLeft)
     {
-      this.fPlayerArc-=this.ANGLE5;
+      this.pAngle-=this.ANGLE5;
       playerArcDelta=-this.ANGLE5;
-      if (this.fPlayerArc<this.ANGLE0)
-        this.fPlayerArc+=this.ANGLE360;
+      if (this.pAngle<this.ANGLE0)
+        this.pAngle+=this.ANGLE360;
     }
       // rotate right
     else if (this.fKeyRight)
     {
-      this.fPlayerArc+=this.ANGLE5;
+      this.pAngle+=this.ANGLE5;
       playerArcDelta=this.ANGLE5;
-      if (this.fPlayerArc>=this.ANGLE360)
-        this.fPlayerArc-=this.ANGLE360;
+      if (this.pAngle>=this.ANGLE360)
+        this.pAngle-=this.ANGLE360;
     }
     this.fBackgroundImageArc-=playerArcDelta;
     if (this.fBackgroundTextureBuffer!=undefined)
     {
-      //console.log("this.fPlayerArc="+this.fPlayerArc+" this.fBackgroundImageArc="+this.fBackgroundImageArc);
+      //console.log("this.pAngle="+this.pAngle+" this.fBackgroundImageArc="+this.fBackgroundImageArc);
       // This code wraps around the background image so that it can be drawn just one.
       // For this to work, the first section of the image needs to be repeated on the third section (see the image used in this example)
       if (this.fBackgroundImageArc<-this.PROJECTIONPLANEWIDTH*2)
@@ -1100,8 +1026,8 @@ GameWindow.prototype =
     //
     //  sin(arc)=y/diagonal
     //  cos(arc)=x/diagonal   where diagonal=speed
-    var playerXDir=this.fCosTable[this.fPlayerArc];
-    var playerYDir=this.fSinTable[this.fPlayerArc];
+    var playerXDir=this.fCosTable[this.pAngle];
+    var playerYDir=this.fSinTable[this.pAngle];
 
     
     var dx=0;
@@ -1109,25 +1035,25 @@ GameWindow.prototype =
     // move forward
     if (this.fKeyUp)
     {
-      dx=Math.round(playerXDir*this.fPlayerSpeed);
-      dy=Math.round(playerYDir*this.fPlayerSpeed);
+      dx=Math.round(playerXDir*this.pSpeed);
+      dy=Math.round(playerYDir*this.pSpeed);
     }
     // move backward
     else if (this.fKeyDown)
     {
-      dx=-Math.round(playerXDir*this.fPlayerSpeed);
-      dy=-Math.round(playerYDir*this.fPlayerSpeed);
+      dx=-Math.round(playerXDir*this.pSpeed);
+      dy=-Math.round(playerYDir*this.pSpeed);
     }
-    this.fPlayerX+=dx;
-    this.fPlayerY+=dy;
+    this.pX+=dx;
+    this.pY+=dy;
     
     // compute cell position
-    var playerXCell = Math.floor(this.fPlayerX/this.TILE_SIZE);
-    var playerYCell = Math.floor(this.fPlayerY/this.TILE_SIZE);
+    var playerXCell = Math.floor(this.pX/this.TILE_SIZE);
+    var playerYCell = Math.floor(this.pY/this.TILE_SIZE);
 
     // compute position relative to cell (ie: how many pixel from edge of cell)
-    var playerXCellOffset = this.fPlayerX % this.TILE_SIZE;
-    var playerYCellOffset = this.fPlayerY % this.TILE_SIZE;
+    var playerXCellOffset = this.pX % this.TILE_SIZE;
+    var playerYCellOffset = this.pY % this.TILE_SIZE;
 
     var minDistanceToWall=30;
     
@@ -1139,7 +1065,7 @@ GameWindow.prototype =
         (playerXCellOffset > (this.TILE_SIZE-minDistanceToWall)))
       {
         // back player up
-        this.fPlayerX-= (playerXCellOffset-(this.TILE_SIZE-minDistanceToWall));
+        this.pX-= (playerXCellOffset-(this.TILE_SIZE-minDistanceToWall));
       }               
     }
     else
@@ -1149,7 +1075,7 @@ GameWindow.prototype =
         (playerXCellOffset < (minDistanceToWall)))
       {
         // back player up
-        this.fPlayerX+= (minDistanceToWall-playerXCellOffset);
+        this.pX+= (minDistanceToWall-playerXCellOffset);
       } 
     } 
 
@@ -1160,7 +1086,7 @@ GameWindow.prototype =
         (playerYCellOffset < (minDistanceToWall)))
       {
         // back player up 
-        this.fPlayerY+= (minDistanceToWall-playerYCellOffset);
+        this.pY+= (minDistanceToWall-playerYCellOffset);
       }
     }
     else
@@ -1170,7 +1096,7 @@ GameWindow.prototype =
         (playerYCellOffset > (this.TILE_SIZE-minDistanceToWall)))
       {
         // back player up 
-        this.fPlayerY-= (playerYCellOffset-(this.TILE_SIZE-minDistanceToWall ));
+        this.pY-= (playerYCellOffset-(this.TILE_SIZE-minDistanceToWall ));
       }
     }    
     
@@ -1190,17 +1116,17 @@ GameWindow.prototype =
       
     if (this.fKeyFlyUp)
     {
-      this.fPlayerHeight+=1;
+      this.pHeight+=1;
     }
     else if (this.fKeyFlyDown)
     {
-      this.fPlayerHeight-=1;
+      this.pHeight-=1;
     }
 
-    if (this.fPlayerHeight<-5)
-      this.fPlayerHeight=-5;
-    else if (this.fPlayerHeight>this.WALL_HEIGHT-5)
-      this.fPlayerHeight=this.WALL_HEIGHT-5;
+    if (this.pHeight<-5)
+      this.pHeight=-5;
+    else if (this.pHeight>this.WALL_HEIGHT-5)
+      this.pHeight=this.WALL_HEIGHT-5;
     
     var object=this;
     
