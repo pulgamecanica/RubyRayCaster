@@ -2,7 +2,7 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
 {
   this.width = canvas.width;
   this.height = canvas.height;
-  this.frameRate = 24; // This is how many times per second the window is updated
+  this.frameRate = 64; // This is how many times per second the window is updated
   this.canvas = canvas;  
   this.canvasContext = this.canvas.getContext( '2d' );
    
@@ -83,6 +83,10 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   
   this.baseLightValue = 180;
   this.baseLightValueDelta = 1;
+  this.lastMousePosition;
+  this.mouseMoving = false;
+
+  this.showMap = false;
 }
 
 GameWindow.prototype = 
@@ -387,17 +391,17 @@ GameWindow.prototype =
     this.fYStepTable = new Array(this.ANGLE360 + 1);
 
     let radian;
-    for (let i=0; i <= this.ANGLE360; i++)
+    for (let i = 0; i <= this.ANGLE360; i++)
     {
       // Populate tables with their radian values.
       // (The addition of 0.0001 is a kludge to avoid divisions by 0. Removing it will produce unwanted holes in the wall when a ray is at 0, 90, 180, or 270 degree angles)
       radian = this.arcToRad(i) + (0.0001);
-      this.fSinTable[i]=Math.sin(radian);
-      this.fISinTable[i]=(1.0/(this.fSinTable[i]));
-      this.fCosTable[i]=Math.cos(radian);
-      this.fICosTable[i]=(1.0/(this.fCosTable[i]));
-      this.fTanTable[i]=Math.tan(radian);
-      this.fITanTable[i]=(1.0/this.fTanTable[i]);
+      this.fSinTable[i] = Math.sin(radian);
+      this.fISinTable[i] = (1.0 / (this.fSinTable[i]));
+      this.fCosTable[i] = Math.cos(radian);
+      this.fICosTable[i] = (1.0 / (this.fCosTable[i]));
+      this.fTanTable[i] = Math.tan(radian);
+      this.fITanTable[i] = (1.0 / this.fTanTable[i]);
 
       // Next we crate a table to speed up wall lookups.
       // 
@@ -414,33 +418,33 @@ GameWindow.prototype =
       
       
       // Facing LEFT
-      if (i>=this.ANGLE90 && i<this.ANGLE270)
+      if (i >= this.ANGLE90 && i < this.ANGLE270)
       {
-        this.fXStepTable[i] = (this.TILE_SIZE/this.fTanTable[i]);
-        if (this.fXStepTable[i]>0)
-          this.fXStepTable[i]=-this.fXStepTable[i];
+        this.fXStepTable[i] = (this.TILE_SIZE / this.fTanTable[i]);
+        if (this.fXStepTable[i] > 0)
+          this.fXStepTable[i] =- this.fXStepTable[i];
       }
       // facing RIGHT
       else
       {
-        this.fXStepTable[i] = (this.TILE_SIZE/this.fTanTable[i]);
-        if (this.fXStepTable[i]<0)
-          this.fXStepTable[i]=-this.fXStepTable[i];
+        this.fXStepTable[i] = (this.TILE_SIZE / this.fTanTable[i]);
+        if (this.fXStepTable[i] < 0)
+          this.fXStepTable[i] =- this.fXStepTable[i];
       }
 
       // FACING DOWN
-      if (i>=this.ANGLE0 && i<this.ANGLE180)
+      if (i >= this.ANGLE0 && i < this.ANGLE180)
       {
-        this.fYStepTable[i] = (this.TILE_SIZE*this.fTanTable[i]);
-        if (this.fYStepTable[i]<0)
-          this.fYStepTable[i]=-this.fYStepTable[i];
+        this.fYStepTable[i] = (this.TILE_SIZE * this.fTanTable[i]);
+        if (this.fYStepTable[i] < 0)
+          this.fYStepTable[i] =- this.fYStepTable[i];
       }
       // FACING UP
       else
       {
-        this.fYStepTable[i] = (this.TILE_SIZE*this.fTanTable[i]);
-        if (this.fYStepTable[i]>0)
-          this.fYStepTable[i]=-this.fYStepTable[i];
+        this.fYStepTable[i] = (this.TILE_SIZE * this.fTanTable[i]);
+        if (this.fYStepTable[i] > 0)
+          this.fYStepTable[i] =- this.fYStepTable[i];
       }
     }
 
@@ -464,7 +468,6 @@ GameWindow.prototype =
     {
       for (var c=0; c<this.MAP_WIDTH; c++)
       {
-        var cssColor="white";
         if (this.fMap.charAt(r*this.MAP_WIDTH+c)!="O")
         {
           this.drawFillRectangle(this.PROJECTIONPLANEWIDTH+(c*this.fMinimapWidth),
@@ -486,9 +489,9 @@ GameWindow.prototype =
 
   rgbToHexColor : function(red, green, blue) 
   {
-    var result="#"+
-      red.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})+""+
-      green.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})+""+
+    var result = "#" +
+      red.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + "" +
+      green.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + "" +
       blue.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
     return result;
   },
@@ -500,23 +503,22 @@ GameWindow.prototype =
   {
     return;
     // sky
-    var color=255;
+    var color = 255;
     var row;
-    var incement=4;
-    for (row=0; row<this.PROJECTIONPLANEHEIGHT/2; row+=incement)
+    var incement = 4;
+    for (row = 0; row < this.PROJECTIONPLANEHEIGHT / 2; row += incement)
     {
-      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH,incement, color/2, color,125, 255);      
-      color-=incement*2;
+      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH, incement, color / 2, color, 125, 255);      
+      color -= incement * 2;
     }
     // ground
-    color=22;
-    for (; row<this.PROJECTIONPLANEHEIGHT; row+=incement)
+    color = 22;
+    for (; row < this.PROJECTIONPLANEHEIGHT; row += incement)
     {
-      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH,incement, color, 20,20, 255);      
-      color+=incement;
+      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH,incement, color, 20, 20, 255);      
+      color += incement;
     }
-    
-    this.fBackgroundImageArc
+    this.fBackgroundImageArc;
   },
 
 
@@ -531,11 +533,11 @@ GameWindow.prototype =
     // draw line from the player position to the position where the ray
     // intersect with wall
     this.drawLine(
-      Math.floor(this.fPlayerMapX), 
-      Math.floor(this.fPlayerMapY), 
+      Math.floor(this.fPlayerMapX),
+      Math.floor(this.fPlayerMapY),
       Math.floor(this.PROJECTIONPLANEWIDTH+((x*this.fMinimapWidth)/this.TILE_SIZE)),
-      Math.floor(((y*this.fMinimapWidth)/this.TILE_SIZE)), 
-      0,255,0,255);
+      Math.floor(((y * this.fMinimapWidth)/this.TILE_SIZE)), 
+      0, 255, 0, 255);
   },
   
   //*******************************************************************//
@@ -548,9 +550,9 @@ GameWindow.prototype =
     this.drawLine(
       Math.floor(this.fPlayerMapX), 
       Math.floor(this.fPlayerMapY), 
-      Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle]*10),
-      Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle]*10), 
-      255,0,0,255);
+      Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle] * 10),
+      Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle] * 10), 
+      255, 0, 0, 255);
   
   },
   
@@ -577,7 +579,6 @@ GameWindow.prototype =
     var distToHorizontalGridBeingHit;      // the viewpoint
 
     var castArc, castColumn;
-    var DEBUG=false;
     
     castArc = this.pAngle;
     // field of view is 60 degree with the point of view (player's direction in the middle)
@@ -616,11 +617,6 @@ GameWindow.prototype =
         // 1/tan(arc)*verticalDistance
         // find the x interception to that wall
         xIntersection = xtemp + this.pX;
-        if (DEBUG)
-        {       
-          console.log("castArc="+castArc+" in CHECKPOINT A, horizontalGrid="+horizontalGrid+" distToNextHorizontalGrid="+distToNextHorizontalGrid+
-            " xtemp="+xtemp+" xIntersection="+xIntersection);       
-        }       
       }
       // Else, the ray is facing up
       else
@@ -632,11 +628,6 @@ GameWindow.prototype =
         xIntersection = xtemp + this.pX;
 
         horizontalGrid--;
-        if (DEBUG)
-        {       
-          console.log("castArc="+castArc+" in CHECKPOINT B, horizontalGrid="+horizontalGrid+" distToNextHorizontalGrid="+distToNextHorizontalGrid+
-            " xtemp="+xtemp+" xIntersection="+xIntersection);       
-        }
       }
       // LOOK FOR HORIZONTAL WALL
       
@@ -654,12 +645,7 @@ GameWindow.prototype =
           xGridIndex = Math.floor(xIntersection/this.TILE_SIZE);
           yGridIndex = Math.floor(horizontalGrid/this.TILE_SIZE);
           var mapIndex=Math.floor(yGridIndex*this.MAP_WIDTH+xGridIndex);
-          if (DEBUG)
-          {                   
-            console.log("this.pY="+this.pY+" this.pX="+this.pX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
-            console.log("this.fITanTable="+this.fITanTable[castArc]);
-          }
-          
+
           // If we've looked as far as outside the map range, then bail out
           if ((xGridIndex>=this.MAP_WIDTH) ||
             (yGridIndex>=this.MAP_HEIGHT) ||
@@ -692,12 +678,6 @@ GameWindow.prototype =
 
         var ytemp = this.fTanTable[castArc]*(verticalGrid - this.pX);
         yIntersection = ytemp + this.pY;
-        if (DEBUG)
-        {       
-          
-          console.log("castArc="+castArc+" in CHECKPOINT C, horizontalGrid="+horizontalGrid+" distToNextHorizontalGrid="+distToNextHorizontalGrid+
-            " ytemp="+ytemp+" yIntersection="+yIntersection);       
-        }
       }
       // RAY FACING LEFT
       else
@@ -709,11 +689,6 @@ GameWindow.prototype =
         yIntersection = ytemp + this.pY;
 
         verticalGrid--;
-        if (DEBUG)
-        {               
-          console.log("castArc="+castArc+" in CHECKPOINT D, horizontalGrid="+horizontalGrid+" distToNextHorizontalGrid="+distToNextHorizontalGrid+
-            " ytemp="+ytemp+" yIntersection="+yIntersection);         
-        }
       }
         // LOOK FOR VERTICAL WALL
       if (castArc==this.ANGLE90||castArc==this.ANGLE270)
@@ -730,12 +705,6 @@ GameWindow.prototype =
           yGridIndex = Math.floor(yIntersection/this.TILE_SIZE);
 
           var mapIndex=Math.floor(yGridIndex*this.MAP_WIDTH+xGridIndex);
-          
-          if (DEBUG)
-          {
-            console.log("this.pY="+this.pY+" this.pX="+this.pX+" castColumn="+castColumn+" castArc="+castArc+" xIntersection="+xIntersection+" horizontalGrid="+horizontalGrid+" xGridIndex="+xGridIndex+" yGridIndex="+yGridIndex+" mapIndex="+mapIndex);
-            console.log("this.fITanTable="+this.fITanTable[castArc]);
-          }
           
           if ((xGridIndex>=this.MAP_WIDTH) || 
             (yGridIndex>=this.MAP_HEIGHT) ||
@@ -790,10 +759,6 @@ GameWindow.prototype =
       
         
         xOffset=xIntersection%this.TILE_SIZE;
-        if (DEBUG)
-        {       
-          console.log("castColumn="+castColumn+" using distToHorizontalGridBeingHit");
-        }
       }
       // else, we use xray instead (meaning the vertical wall is closer than
       //   the horizontal wall)
@@ -811,11 +776,6 @@ GameWindow.prototype =
         bottomOfWall = (ratio * this.pHeight + this.fProjectionPlaneYCenter);
         var scale = (this.pDTPP*this.WALL_HEIGHT/dist); 
         topOfWall = bottomOfWall - scale;
-        
-        if (DEBUG)
-        {       
-          console.log("castColumn="+castColumn+" using distToVerticalGridBeingHit");
-        }
       }
 
       // correct distance (compensate for the fishbown effect)
@@ -824,11 +784,6 @@ GameWindow.prototype =
       //var projectedWallHeight=(this.WALL_HEIGHT*this.pDTPP/dist);
       //bottomOfWall = this.fProjectionPlaneYCenter+(projectedWallHeight*0.5);
       //topOfWall = this.fProjectionPlaneYCenter-(projectedWallHeight*0.5);
-
-      if (DEBUG)
-      {       
-        console.log("castColumn="+castColumn+" distance="+dist);
-      }  
       
       
       // Add simple shading so that farther wall slices appear darker.
@@ -1011,11 +966,7 @@ GameWindow.prototype =
       if (this.fBackgroundImageArc<-this.PROJECTIONPLANEWIDTH*2)
         this.fBackgroundImageArc=this.PROJECTIONPLANEWIDTH*2+(this.fBackgroundImageArc);
       else if (this.fBackgroundImageArc>0)
-        this.fBackgroundImageArc=-(this.fBackgroundTexture.width-this.PROJECTIONPLANEWIDTH- (this.fBackgroundImageArc));      
-
-        
-
-
+        this.fBackgroundImageArc=-(this.fBackgroundTexture.width-this.PROJECTIONPLANEWIDTH- (this.fBackgroundImageArc));
     }   
     //  _____     _
     // |\ arc     |
@@ -1130,12 +1081,53 @@ GameWindow.prototype =
     
     var object=this;
     
+    if (this.mouseMoving == false) {
+      this.fKeyLookUp = false;
+      this.fKeyLookDown = false;
+      this.fKeyRight = false;
+      this.fKeyLeft = false;
+      this.lastMousePosition = false;
+    }
+
+    this.mouseMoving = false;
     // Render next frame
     setTimeout(function() 
     {
       object.animationFrameID = requestAnimationFrame(object.update.bind(object));
     }, 1000 / this.frameRate);    
-    
+  },
+
+  handleMouseMove: function(e)
+  {
+    if (e.target instanceof HTMLCanvasElement)
+    {
+      this.mouseMoving = true;
+      if (this.lastMousePosition) {
+        let direction = [0, 0];
+        if (e.clientX > this.lastMousePosition.clientX)
+        {
+          direction[0] = 1;
+          this.fKeyRight = true;
+        }
+        else if (e.clientX < this.lastMousePosition.clientX)
+        {
+          direction[0] = -1;
+          this.fKeyLeft = true;
+        }
+        if (e.clientY > this.lastMousePosition.clientY)
+        {
+          direction[1] = -1;
+          this.fKeyLookDown = true;
+        }
+        else if (e.clientY < this.lastMousePosition.clientY)
+        {
+          direction[1] = 1;
+          this.fKeyLookUp = true;
+        }
+        console.log(direction);
+      }
+      this.lastMousePosition = e;
+    }
   },
 
   handleKeyDown : function(e) 
@@ -1145,104 +1137,104 @@ GameWindow.prototype =
       e = window.event;
 
     // UP keypad
-    if (e.keyCode == '38'  || String.fromCharCode(e.keyCode)=='W') 
+    if (e.keyCode == '38'  || String.fromCharCode(e.keyCode) == 'W') 
     {
-      this.fKeyUp=true;
-
+      this.fKeyUp = true;
     }
     // DOWN keypad
-    else if (e.keyCode == '40' || String.fromCharCode(e.keyCode)=='S') 
+    else if (e.keyCode == '40' || String.fromCharCode(e.keyCode) == 'S') 
     {
-      this.fKeyDown=true;
+      this.fKeyDown = true;
     }
     // LEFT keypad
-    else if (e.keyCode == '37'  || String.fromCharCode(e.keyCode)=='A') 
+    else if (e.keyCode == '37'  || String.fromCharCode(e.keyCode) == 'A') 
     {
-       this.fKeyLeft=true;
+       this.fKeyLeft = true;
     }
     // RIGHT keypad
-    else if (e.keyCode == '39'  || String.fromCharCode(e.keyCode)=='D') 
+    else if (e.keyCode == '39'  || String.fromCharCode(e.keyCode) == 'D') 
     {
-       this.fKeyRight=true;
+       this.fKeyRight = true;
     }
     
     // LOOK UP
-    else if (String.fromCharCode(e.keyCode)=='Q') 
+    else if (String.fromCharCode(e.keyCode) == 'Q') 
     {
-       this.fKeyLookUp=true;
+       this.fKeyLookUp = true;
     }
     // LOOK DOWN
-    else if (String.fromCharCode(e.keyCode)=='Z') 
+    else if (String.fromCharCode(e.keyCode) == 'Z') 
     {
-       this.fKeyLookDown=true;
+       this.fKeyLookDown = true;
     }
     // FLY UP
-    else if (String.fromCharCode(e.keyCode)=='E') 
+    else if (String.fromCharCode(e.keyCode) == 'E') 
     {
-       this.fKeyFlyUp=true;
+       this.fKeyFlyUp = true;
     }
     // FLY DOWN
-    else if (String.fromCharCode(e.keyCode)=='C') 
+    else if (String.fromCharCode(e.keyCode) == 'C') 
     {
-       this.fKeyFlyDown=true;
+       this.fKeyFlyDown = true;
     }     
-    
-
+    else if (String.fromCharCode(e.keyCode) == 'M')
+    {
+      this.showMap = !this.showMap;
+    }
   },
   
-
   handleKeyUp : function(e) 
   {
     if (!e)
       e = window.event;
 
     // UP keypad
-    if (e.keyCode == '38'  || String.fromCharCode(e.keyCode)=='W') 
+    if (e.keyCode == '38'  || String.fromCharCode(e.keyCode) == 'W') 
     {
-      this.fKeyUp=false;
+      this.fKeyUp = false;
 
     }
     // DOWN keypad
-    if (e.keyCode == '40' || String.fromCharCode(e.keyCode)=='S') 
+    if (e.keyCode == '40' || String.fromCharCode(e.keyCode) == 'S') 
     {
-      this.fKeyDown=false;
+      this.fKeyDown = false;
     }
     // LEFT keypad
-    if (e.keyCode == '37'  || String.fromCharCode(e.keyCode)=='A') 
+    if (e.keyCode == '37'  || String.fromCharCode(e.keyCode) == 'A') 
     {
-       this.fKeyLeft=false;
+       this.fKeyLeft = false;
     }
     // RIGHT keypad
-    if (e.keyCode == '39'  || String.fromCharCode(e.keyCode)=='D') 
+    if (e.keyCode == '39'  || String.fromCharCode(e.keyCode) == 'D') 
     {
-       this.fKeyRight=false;
+       this.fKeyRight = false;
     }
     // LOOK UP
-    else if (String.fromCharCode(e.keyCode)=='Q') 
+    else if (String.fromCharCode(e.keyCode) == 'Q') 
     {
-       this.fKeyLookUp=false;
+       this.fKeyLookUp = false;
     }
     // LOOK DOWN
-    else if (String.fromCharCode(e.keyCode)=='Z') 
+    else if (String.fromCharCode(e.keyCode) == 'Z') 
     {
-       this.fKeyLookDown=false;
+       this.fKeyLookDown = false;
     } 
     // FLY UP
-    else if (String.fromCharCode(e.keyCode)=='E') 
+    else if (String.fromCharCode(e.keyCode) == 'E') 
     {
-       this.fKeyFlyUp=false;
+       this.fKeyFlyUp = false;
     }
     // FLY DOWN
-    else if (String.fromCharCode(e.keyCode)=='C') 
+    else if (String.fromCharCode(e.keyCode) == 'C') 
     {
-       this.fKeyFlyDown=false;
-    }     
+       this.fKeyFlyDown = false;
+    }
   },
   
   start : function()
   {
-
     this.init();
+    window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
     window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
     window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
     
