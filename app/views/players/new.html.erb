@@ -1,9 +1,11 @@
-<h1>New player</h1>
+<div class="dialog">
+  <h1>Sign up</h1>
 
-<%= render "form", player: @player %>
+  <%= render "form", player: @player %>
 
-<br>
-
-<div>
-  <%= link_to "Back to players", players_path %>
+  <ul class="session-links">
+    <li>Already have an account?</li>
+    <li><%= link_to "Sign In", login_path %></li>
+    <li><%= link_to "Back to players", players_path %></li>
+  </ul>
 </div>

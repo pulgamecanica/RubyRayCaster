@@ -25,6 +25,7 @@ class PlayersController < ApplicationController
 
     respond_to do |format|
       if @player.save
+        helpers.log_in @player
         format.html { redirect_to player_url(@player), notice: "Player was successfully created." }
         format.json { render :show, status: :created, location: @player }
       else
@@ -65,6 +66,6 @@ class PlayersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def player_params
-      params.require(:player).permit(:name, :bio, :color)
+      params.require(:player).permit(:name, :bio, :color, :username, :password, :password_confirmation)
     end
 end

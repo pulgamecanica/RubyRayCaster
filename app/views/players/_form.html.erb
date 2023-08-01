@@ -27,6 +27,21 @@
   </div>
 
   <div>
-    <%= form.submit %>
+    <%= form.label :username %>
+    <%= form.text_field :username %>
+  </div>
+  
+  <div>
+    <%= form.label :password %>
+    <%= form.password_field :password %>
+  </div>
+
+  <div>
+    <%= form.label :password_confirmation, "Confirmation" %>
+    <%= form.password_field :password_confirmation %>
+  </div>
+
+  <div>
+    <%= form.submit "Sign up" %>
   </div>
 <% end %>
