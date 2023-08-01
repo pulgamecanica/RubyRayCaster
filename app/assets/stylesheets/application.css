@@ -14,6 +14,11 @@
  *= require_self
  */
 
+body {
+    padding: 0;
+    margin: auto;
+}
+
 .center {
     text-align: center;
 }
@@ -98,4 +103,46 @@
     border: 1px lightgreen; solid;
     border-radius: 0.5rem;
     cursor: pointer;
+}
+
+.session_navbar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    cursor: pointer;
+    transform: translateX(60px);
+    transition: transform 0.5s ease-out;
+}
+
+.session_navbar:hover {
+    transform: translateX(0px);
+}
+
+.session_navbar div {
+    box-shadow: 2px 2px 10px gray;
+    outline: 1px solid gray;
+}
+
+.session_navbar div a {
+    padding: 0.25rem;
+    display: flex;
+}
+
+.session_navbar div a:hover {
+    opacity: 0.75;
+}
+
+.session_navbar div:nth-child(1) {
+    border-radius: 0 0 0 0.5rem;
+    background: lightsteelblue;
+}
+
+.session_navbar div:nth-child(2) {
+    background: lightgoldenrodyellow;
+}
+
+.session_navbar div svg {
+    height: 50px;
+    width: auto;
 }
