@@ -660,5 +660,30 @@ body {
     width: auto;
 }
 ###################################################################
+# Update the action cable connection, accept when logged user and reject when user is not authenticated
+module ApplicationCable
+  class Connection < ActionCable::Connection::Base
+    identified_by :current_user
+
+    def connect
+      self.current_user = find_user
+    end
+
+    private
+      def find_user
+        if user = Player.find_by(id: cookies.signed[:player_id])
+          user
+        else
+          reject_unauthorized_connection
+        end
+      end
+  end
+end
+###################################################################
+###################################################################
+###################################################################
+###################################################################
+###################################################################
+
 
 

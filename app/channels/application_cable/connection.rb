@@ -8,7 +8,7 @@ module ApplicationCable
 
     private
       def find_user
-        if user = Player.all.first
+        if user = Player.find_by(id: cookies.signed[:player_id])
           user
         else
           reject_unauthorized_connection
