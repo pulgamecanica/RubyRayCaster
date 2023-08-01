@@ -14,6 +14,14 @@
  *= require_self
  */
 
+html {
+    background-color: #fcfaf5;
+    box-shadow: 0 0 0 20px #7292b0 inset;
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: 20px;
+}
+
 body {
     padding: 0;
     margin: auto;
@@ -145,4 +153,72 @@ body {
 .session_navbar div svg {
     height: 50px;
     width: auto;
+}
+
+.message-wr {
+    height: 75vh;
+    margin: auto;
+    width: 80vw;
+}
+
+.messages {
+    background-color: #fff;
+    box-shadow: 0 0 0 5px #f4f2ed inset;
+    box-sizing: border-box;
+    height: 87%;
+    overflow: scroll;
+    padding: 20px;
+}
+
+.messages-table {
+    display: table;
+    width: 100%;
+}
+
+.message {
+  line-height: 1.6;
+  display: table-row;
+}
+
+.message:last-child {
+    margin-bottom: 10px;
+}
+
+.message > div {
+    display: table-cell;
+    padding: 13px 10px 10px;
+}
+
+.message-user {
+  color: #666;
+  font-size: 13px;
+  margin-right: 10px;
+}
+
+.message-content {
+  width: 100%;
+}
+
+.message-input {
+    background-color: rgba(0, 0, 0, 0.03);
+    box-sizing: border-box;
+    height: 13%;
+    padding: 0 5px 5px;
+}
+
+.message-input form {
+    height: 100%;
+}
+
+.message-input textarea {
+    height: 100%;
+    width: 84.5%;
+    max-width: 400px;
+}
+
+.message-input input {
+    float: right;
+    height: 100%;
+    vertical-align: top;
+    width: 14.5%;
 }
