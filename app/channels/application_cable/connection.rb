@@ -8,7 +8,7 @@ module ApplicationCable
 
     private
       def find_user
-        if user = User.all.first
+        if user = Player.all.first
           user
         else
           reject_unauthorized_connection

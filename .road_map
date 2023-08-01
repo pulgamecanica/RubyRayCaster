@@ -294,10 +294,35 @@ game_controller.js
 	create  app/javascript/channels/game_channel.js
 	gsub  app/javascript/channels/game_channel.js
 	append  app/javascript/channels/index.js
+###################################################################
+# Add the static raycasting code to the javascript
+###################################################################
+# Use the actual map for the raycasting game
+###################################################################
+# Make sure you have redis installed
+Redis on localhost:6379
+>$ sudo dnf install redis
+  Installed:
+    redis-7.0.12-1.fc37.x86_64
+
+  Complete!
+>$ sudo systemctl status redis
+  ○ redis.service - Redis persistent key-value database
+       Loaded: loaded (/usr/lib/systemd/system/redis.service; disabled; preset: disabled)
+      Drop-In: /etc/systemd/system/redis.service.d
+               └─limit.conf
+       Active: inactive (dead)
+# The log file defined on the /etc/redis/redis.conf is:
+# logfile /var/log/redis/redis.log
+
+>$ sudo systemctl start redis
+# To test the redis DB
+>$ redis-cli ping
 
 ###################################################################
 ###################################################################
 ###################################################################
-
+###################################################################
+###################################################################
 
 
