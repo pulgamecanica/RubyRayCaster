@@ -47,7 +47,7 @@
 	create      test/controllers/players_controller_test.rb
 	create      test/system/players_test.rb
 ###################################################################
-# Generate Player
+# Generate RoomPlayer
 >$ rails g scaffold RoomPlayer player:references game_room:references morale:integer energy:integer --no-helper --no-fixture --no-jbuilder
 	invoke  active_record
 	create    db/migrate/20230712140345_create_room_players.rb
@@ -318,10 +318,105 @@ Redis on localhost:6379
 >$ sudo systemctl start redis
 # To test the redis DB
 >$ redis-cli ping
+###################################################################
+# Create Player Authentication And Login Steps
+# In order to do this we must implement a login logout create & sessions
+Gemfile:
+gem "bcrypt", "~> 3.1.7"
+>$ bundle install
+
+# Add Username and Password Digest (encrypted with bctypt)
+>$ rails g migration AddUsernameToPlayer username password_digest
+      invoke  active_record
+      create    db/migrate/20230801164655_add_username_to_player.rb
+
+  ```rb
+  class AddUsernameToPlayer < ActiveRecord::Migration[7.0]
+    def change
+      add_column :players, :password_digest, :string
+      add_column :players, :username, :string
+      add_index :players, :username, unique: true
+    end
+  end
+  ```
+
+>$ rails db:migrate
+  == 20230801164655 AddUsernameToPlayer: migrating ==============================
+  -- add_column(:players, :password_digest, :string)
+     -> 0.0030s
+  -- add_column(:players, :username, :string)
+     -> 0.0015s
+  -- add_index(:players, :username, {:unique=>true})
+     -> 0.0363s
+  == 20230801164655 AddUsernameToPlayer: migrated (0.0415s) =====================
+
+# Create the Message Scaffold (controller, models, migrations, helpers & views)
+>$ rails g scaffold Message content:text player:references --no-helper --no-fixture --no-jbuilder
+  invoke  active_record
+  create    db/migrate/20230801173159_create_messages.rb
+  create    app/models/message.rb
+  invoke    test_unit
+  create      test/models/message_test.rb
+  invoke  resource_route
+   route    resources :messages
+  invoke  scaffold_controller
+  create    app/controllers/messages_controller.rb
+  invoke    erb
+  create      app/views/messages
+  create      app/views/messages/index.html.erb
+  create      app/views/messages/edit.html.erb
+  create      app/views/messages/show.html.erb
+  create      app/views/messages/new.html.erb
+  create      app/views/messages/_form.html.erb
+  create      app/views/messages/_message.html.erb
+  invoke    resource_route
+  invoke    test_unit
+  create      test/controllers/messages_controller_test.rb
+  create      test/system/messages_test.rb
+
+>$ rails db:migrate
+  == 20230801173411 CreateMessages: migrating ===================================
+  -- create_table(:messages)
+     -> 0.0363s
+  == 20230801173411 CreateMessages: migrated (0.0367s) ==========================
 
 ###################################################################
+# Player Model
+class Player < ApplicationRecord
+  has_many :messages
+  has_many :rooms
+  NAME_REGEX = /\w+/
+  validates :username, presence: true, uniqueness: { case_sensitive: false },
+                       format: { with: /\A#{NAME_REGEX}\z/i },
+                       length: { maximum: 15 }
+  validates :password, presence: true, length: { minimum: 6 }
+  has_secure_password
+end
+
+# Message Model
+class Message < ApplicationRecord
+  belongs_to :user
+  validates :content, presence: true
+  scope :for_display, -> { order(:created_at).last(50) }
+end
 ###################################################################
-###################################################################
+# Create the session controller and helper (includes routes)
+>$ rails g controller Sessions new create destroy
+  create  app/controllers/sessions_controller.rb
+   route  get 'sessions/new'
+          get 'sessions/create'
+          get 'sessions/destroy'
+  invoke  erb
+  create    app/views/sessions
+  create    app/views/sessions/new.html.erb
+  create    app/views/sessions/create.html.erb
+  create    app/views/sessions/destroy.html.erb
+  invoke  test_unit
+  create    test/controllers/sessions_controller_test.rb
+  invoke  helper
+  create    app/helpers/sessions_helper.rb
+  invoke    test_unit
+
 ###################################################################
 ###################################################################
 
