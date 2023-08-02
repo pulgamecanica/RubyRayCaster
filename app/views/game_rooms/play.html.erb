@@ -5,7 +5,6 @@
 				<div class="row no-outilne">
 					<div class="col no-outilne">
 						<h1>Room # <%= @game_room.id %></h1>
-						<h4>Show players position on the map...?</h4>
 						<svg
 							data-controller="map-viewer"
 							data-map-viewer-width-value="<%=@game_room.map_width%>"
@@ -29,10 +28,17 @@
 			</div>
 			<div class="col">
 				<h2>Players</h2>
-				<span>Hotwire connect, show all players</span>
-				<span>p1</span>
-				<span>p1</span>
-				<span>p1</span>
+				<div id="room-players-table" class="room-players-table">
+					<div class="row">
+						<div class="col no-outilne">username</div>
+						<div class="col no-outilne">status</div>
+						<div class="col no-outilne">morale</div>
+						<div class="col no-outilne">energy</div>
+					</div>
+					<% if @game_room.room_players.any? %>
+			      <%= render @game_room.room_players %>
+			    <% end %>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -41,4 +47,5 @@
 <div class="center container">
 	<div id="canvas_container" class="canvas-frame">
 	</div>
+	<div id="thisId"></div>
 </div>

@@ -1,8 +1,11 @@
 <div class="message" id="<%= dom_id message %>">
-  <div class="message-user">
+  <div class="message-user" style="color: <%= message.player.color %>">
     <%= message.player.username %>:
   </div>
   <div class="message-content">
     <%= message.content %>
+  </div>
+  <div class="message-time">
+    <%= message.created_at.strftime("%H:%M") %>
   </div>
 </div>

@@ -176,8 +176,9 @@ body {
 }
 
 .message {
-  line-height: 1.6;
-  display: table-row;
+    line-height: 1.6;
+    display: table-row;
+    box-shadow: -1px 1px 4px 0 #7292b0;
 }
 
 .message:last-child {
@@ -199,6 +200,11 @@ body {
   width: 100%;
 }
 
+
+.message-time {
+  font-size: 12px;
+}
+
 .message-input {
     background-color: rgba(0, 0, 0, 0.03);
     box-sizing: border-box;
@@ -217,8 +223,15 @@ body {
 }
 
 .message-input input {
+    background-color: #7292b0;
+    cursor: pointer;
     float: right;
     height: 100%;
     vertical-align: top;
     width: 14.5%;
+}
+
+.room-players-table .row, .room-players-table .row .col {
+    border-bottom: none !important;
+
 }

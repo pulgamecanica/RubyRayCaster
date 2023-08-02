@@ -1,22 +1,14 @@
-<div id="<%= dom_id room_player %>">
-  <p>
-    <strong>Player:</strong>
-    <%= room_player.player_id %>
-  </p>
-
-  <p>
-    <strong>Game room:</strong>
-    <%= room_player.game_room_id %>
-  </p>
-
-  <p>
-    <strong>Morale:</strong>
+<div class="row player" id="<%= dom_id room_player %>">
+  <div class="col player-user" style="color: <%= room_player.player.color %>">
+    <%= room_player.player.username %>
+  </div>
+  <div class="col player-status">
+    <%= room_player.status == 1 ? "Online" : "Offline" %>
+  </div>
+  <div class="col player-morale">
     <%= room_player.morale %>
-  </p>
-
-  <p>
-    <strong>Energy:</strong>
+  </div>
+  <div class="col player-energy">
     <%= room_player.energy %>
-  </p>
-
+  </div>
 </div>
