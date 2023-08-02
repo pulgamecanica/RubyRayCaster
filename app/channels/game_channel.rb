@@ -1,8 +1,12 @@
 class GameChannel < ApplicationCable::Channel
   def subscribed
-    puts "Hello"
-    puts self.current_player
-    # stream_from "some_channel"
+    game_room = GameRoom.find_by(id: params[:id])
+    if !game_room
+      puts "Game Not Founded"
+    else
+      puts "Game Founded streaming ON..."
+      stream_from game_room
+    end
   end
 
   def unsubscribed
@@ -10,7 +14,8 @@ class GameChannel < ApplicationCable::Channel
   end
 
   def update
-    puts "Some stuff"
+    game_room = GameRoom.find_by(id: params[:id])
+    puts game_room
   end
 
   def user_input
