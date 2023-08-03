@@ -71,6 +71,7 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   this.fKeyLookDown = false;
   this.fKeyFlyUp = false;
   this.fKeyFlyDown = false;
+  this.fKeyRun = false;
   
   this.fMap = map.replace(/\s+/g, '');
   this.MAP_WIDTH = mapWidth;
@@ -538,41 +539,6 @@ GameWindow.prototype =
     }
     this.fBackgroundImageArc;
   },
-
-
-  
-  //*******************************************************************//
-  //* Draw ray on the overhead map (for illustartion purpose)
-  //* This is not part of the ray-casting process
-  //*******************************************************************//
-  drawRayOnOverheadMap : function(x, y)
-  {
-    //console.log("drawRayOnOverheadMap x="+y+" y="+y);
-    // draw line from the player position to the position where the ray
-    // intersect with wall
-    // this.drawLine(
-    //   Math.floor(this.fPlayerMapX),
-    //   Math.floor(this.fPlayerMapY),
-    //   Math.floor(this.PROJECTIONPLANEWIDTH+((x*this.fMinimapWidth)/this.TILE_SIZE)),
-    //   Math.floor(((y * this.fMinimapWidth)/this.TILE_SIZE)), 
-    //   0, 255, 0, 255);
-  },
-  
-  //*******************************************************************//
-  //* Draw player POV on the overhead map (for illustartion purpose)
-  //* This is not part of the ray-casting process
-  //*******************************************************************//
-  drawPlayerPOVOnOverheadMap : function(x, y)
-  { 
-    // draw a red line indication the player's direction
-    // this.drawLine(
-    //   Math.floor(this.fPlayerMapX), 
-    //   Math.floor(this.fPlayerMapY), 
-    //   Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle] * 10),
-    //   Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle] * 10), 
-    //   255, 0, 0, 255);
-  
-  },
   
   //*******************************************************************//
   //* Renderer
@@ -761,7 +727,6 @@ GameWindow.prototype =
       {
         // the next function call (drawRayOnMap()) is not a part of raycating rendering part, 
         // it just draws the ray on the overhead map to illustrate the raycasting process
-        this.drawRayOnOverheadMap(xIntersection, horizontalGrid);
         dist=distToHorizontalGridBeingHit/this.fFishTable[castColumn];
 //        dist_y /= convert_to_float(GLfishTable[GLcastColumn]);
         distortedDistance=dist;
@@ -785,7 +750,6 @@ GameWindow.prototype =
         isVerticalHit=true;
         // the next function call (drawRayOnMap()) is not a part of raycating rendering part, 
         // it just draws the ray on the overhead map to illustrate the raycasting process
-        this.drawRayOnOverheadMap(verticalGrid, yIntersection);
         dist=distToVerticalGridBeingHit/this.fFishTable[castColumn];
 
         xOffset=yIntersection%this.TILE_SIZE;
@@ -955,10 +919,15 @@ GameWindow.prototype =
     if (gameData) {
       this.players = gameData["players"];
     }
+    if (this.fKeyRun) {
+      this.pSpeed = 9;
+    } else {
+      this.pSpeed = 4;
+    }
+    console.log("Running", this.pSpeed, this.fKeyRun);
     this.clearbufferCanvas();
     if (this.screen == SCREEN_MAP) {
       this.drawOverheadMap();
-      // this.drawPlayerPOVOnOverheadMap();
     } else {
       this.raycast();
     }
@@ -1200,7 +1169,11 @@ GameWindow.prototype =
     else if (String.fromCharCode(e.keyCode) == 'C') 
     {
        this.fKeyFlyDown = true;
-    }     
+    }
+    else if (e.keyCode == 16) 
+    {
+       this.fKeyRun = true;
+    }
     else if (String.fromCharCode(e.keyCode) == 'M')
     {
       if (this.screen == SCREEN_MAP) {
@@ -1258,6 +1231,10 @@ GameWindow.prototype =
     else if (String.fromCharCode(e.keyCode) == 'C') 
     {
        this.fKeyFlyDown = false;
+    }
+    else if (e.keyCode == 16) 
+    {
+       this.fKeyRun = false;
     }
   },
   
