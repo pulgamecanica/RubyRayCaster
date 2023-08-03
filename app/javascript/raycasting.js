@@ -1,5 +1,9 @@
 import { gameData } from "controllers/game_controller"
 
+const SCREEN_GAME = 0;
+const SCREEN_MAP = 1;
+const SCREEN_MENU = 2;
+
 function GameWindow(canvas, map, mapWidth, gameWidth = 400)
 {
   this.width = canvas.width;
@@ -58,11 +62,6 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   this.fProjectionPlaneYCenter = this.PROJECTIONPLANEHEIGHT / 2;
   this.fProjectionPlaneXCenter = this.PROJECTIONPLANEHEIGHT / 2;
 
-  // the following variables are used to keep the player coordinate in the overhead map
-  this.fPlayerMapX;
-  this.fPlayerMapY;
-  this.fMinimapWidth;
-
   // movement flag
   this.fKeyUp = false;
   this.fKeyDown = false;
@@ -75,7 +74,7 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   
   this.fMap = map.replace(/\s+/g, '');
   this.MAP_WIDTH = mapWidth;
-  this.MAP_HEIGHT = this.fMap.length / this.MAP_WIDTH;
+  this.MAP_HEIGHT = Math.floor(this.fMap.length / this.MAP_WIDTH); // Not sure about the floor here ...
   
   this.animationFrameID;
   
@@ -88,8 +87,17 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   this.lastMousePosition;
   this.mouseMoving = false;
 
-  this.showMap = false;
+  // the following variables are used to keep the player coordinate in the overhead map
+  this.fPlayerMapX;
+  this.fPlayerMapY;
+  this.fMinimapWidth = Math.floor(this.width / this.MAP_WIDTH);
+  this.fMinimapHeight = Math.floor(this.height / this.MAP_HEIGHT);
+
+  console.log(this.width, this.height, this.fMinimapWidth, this.fMinimapHeight);
+
   this.players = [];
+
+  this.screen = SCREEN_GAME;
 }
 
 GameWindow.prototype = 
@@ -361,21 +369,21 @@ GameWindow.prototype =
   // For minimap only
   drawFillRectangle: function(x, y, width, height, red, green, blue, alpha)
   {
-    var bytesPerPixel=4;
+    var bytesPerPixel = 4;
     //var targetCanvasPixels=this.canvasContext.createImageData(0, 0, width, height);
-    var targetIndex=(bytesPerPixel*this.bufferCanvasPixels.width)*y+(bytesPerPixel*x);
-    for (var h=0; h<height; h++)
+    var targetIndex = (bytesPerPixel * this.bufferCanvasPixels.width) * y + (bytesPerPixel * x);
+    for (var h = 0; h < height; h++)
     {
-      for (var w=0; w<width; w++)
+      for (var w = 0; w < width; w++)
       {
-        this.bufferCanvasPixels.data[targetIndex]=red;
-        this.bufferCanvasPixels.data[targetIndex+1]=green;
-        this.bufferCanvasPixels.data[targetIndex+2]=blue;
-        this.bufferCanvasPixels.data[targetIndex+3]=alpha;
-        targetIndex+=bytesPerPixel;
+        this.bufferCanvasPixels.data[targetIndex] = red;
+        this.bufferCanvasPixels.data[targetIndex + 1] = green;
+        this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+        this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
+        targetIndex += bytesPerPixel;
       }
-      targetIndex+=(bytesPerPixel*(this.bufferCanvasPixels.width-width));
-    } 
+      targetIndex = ((bytesPerPixel * this.bufferCanvasPixels.width) * (y + h)) + (bytesPerPixel * x);
+    }
   },
   
   init: function()
@@ -466,27 +474,34 @@ GameWindow.prototype =
   //*******************************************************************//
   drawOverheadMap : function()
   {
-    this.fMinimapWidth=5;
-    for (var r=0; r<this.MAP_HEIGHT; r++)
+    this.drawFillRectangle(0, 0, this.width, this.height, 0, 0, 0, 255);
+    for (var r = 0; r < this.MAP_HEIGHT; r++)
     {
-      for (var c=0; c<this.MAP_WIDTH; c++)
+      for (var c = 0; c < this.MAP_WIDTH; c++)
       {
-        if (this.fMap.charAt(r*this.MAP_WIDTH+c)!="O")
+        if (this.fMap.charAt(r * this.MAP_WIDTH + c) != "O")
         {
-          this.drawFillRectangle(this.PROJECTIONPLANEWIDTH+(c*this.fMinimapWidth),
-            (r*this.fMinimapWidth), this.fMinimapWidth, this.fMinimapWidth, 0, 0,0, 255);
+          this.drawFillRectangle(c * this.fMinimapWidth,
+            (r * this.fMinimapHeight), this.fMinimapWidth, this.fMinimapHeight + 1, 0, 0,0, 255);
         }
         else
         {
-          this.drawFillRectangle(this.PROJECTIONPLANEWIDTH+(c*this.fMinimapWidth),
-            (r*this.fMinimapWidth), this.fMinimapWidth, this.fMinimapWidth, 255, 255,255, 255);
+          this.drawFillRectangle(c*this.fMinimapWidth,
+            (r * this.fMinimapHeight), this.fMinimapWidth, this.fMinimapHeight + 1, 255, 255,255, 255);
         }
       }
     }
     // Draw player position on the overhead map
-    this.fPlayerMapX=this.PROJECTIONPLANEWIDTH+((this.pX/this.TILE_SIZE) * this.fMinimapWidth);
-    this.fPlayerMapY=((this.pY/this.TILE_SIZE) * this.fMinimapWidth);
-    
+    let player_size = 5;
+    this.fPlayerMapX = Math.floor((this.pX/this.TILE_SIZE) * this.fMinimapWidth) - Math.floor(player_size / 2);
+    this.fPlayerMapY = Math.floor((this.pY/this.TILE_SIZE) * this.fMinimapHeight) - Math.floor(player_size / 2);
+    this.drawFillRectangle(this.fPlayerMapX, this.fPlayerMapY, player_size, player_size, 242, 42, 142, 255);
+    this.drawLine(
+      this.fPlayerMapX + Math.floor(player_size / 2), 
+      this.fPlayerMapY + Math.floor(player_size / 2), 
+      Math.floor(this.fPlayerMapX + Math.floor(player_size / 2) + (this.fCosTable[this.pAngle] * 10)),
+      Math.floor(this.fPlayerMapY + Math.floor(player_size / 2) + (this.fSinTable[this.pAngle] * 10)), 
+      255, 42, 0, 255);
   },
   
 
@@ -535,12 +550,12 @@ GameWindow.prototype =
     //console.log("drawRayOnOverheadMap x="+y+" y="+y);
     // draw line from the player position to the position where the ray
     // intersect with wall
-    this.drawLine(
-      Math.floor(this.fPlayerMapX),
-      Math.floor(this.fPlayerMapY),
-      Math.floor(this.PROJECTIONPLANEWIDTH+((x*this.fMinimapWidth)/this.TILE_SIZE)),
-      Math.floor(((y * this.fMinimapWidth)/this.TILE_SIZE)), 
-      0, 255, 0, 255);
+    // this.drawLine(
+    //   Math.floor(this.fPlayerMapX),
+    //   Math.floor(this.fPlayerMapY),
+    //   Math.floor(this.PROJECTIONPLANEWIDTH+((x*this.fMinimapWidth)/this.TILE_SIZE)),
+    //   Math.floor(((y * this.fMinimapWidth)/this.TILE_SIZE)), 
+    //   0, 255, 0, 255);
   },
   
   //*******************************************************************//
@@ -550,12 +565,12 @@ GameWindow.prototype =
   drawPlayerPOVOnOverheadMap : function(x, y)
   { 
     // draw a red line indication the player's direction
-    this.drawLine(
-      Math.floor(this.fPlayerMapX), 
-      Math.floor(this.fPlayerMapY), 
-      Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle] * 10),
-      Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle] * 10), 
-      255, 0, 0, 255);
+    // this.drawLine(
+    //   Math.floor(this.fPlayerMapX), 
+    //   Math.floor(this.fPlayerMapY), 
+    //   Math.floor(this.fPlayerMapX+this.fCosTable[this.pAngle] * 10),
+    //   Math.floor(this.fPlayerMapY+this.fSinTable[this.pAngle] * 10), 
+    //   255, 0, 0, 255);
   
   },
   
@@ -940,10 +955,13 @@ GameWindow.prototype =
     if (gameData) {
       this.players = gameData["players"];
     }
-    this.clearbufferCanvas();    
-    this.drawOverheadMap();
-    this.raycast();
-    this.drawPlayerPOVOnOverheadMap();
+    this.clearbufferCanvas();
+    if (this.screen == SCREEN_MAP) {
+      this.drawOverheadMap();
+      // this.drawPlayerPOVOnOverheadMap();
+    } else {
+      this.raycast();
+    }
     this.blitbufferCanvas();
     var playerArcDelta=0;
     
@@ -1087,15 +1105,15 @@ GameWindow.prototype =
     
     var object=this;
     
-    if (this.mouseMoving == false) {
-      this.fKeyLookUp = false;
-      this.fKeyLookDown = false;
-      this.fKeyRight = false;
-      this.fKeyLeft = false;
-      this.lastMousePosition = false;
-    }
+    // if (this.mouseMoving == false) {
+      // this.fKeyLookUp = false;
+      // this.fKeyLookDown = false;
+      // this.fKeyRight = false;
+      // this.fKeyLeft = false;
+      // this.lastMousePosition = false;
+    // }
 
-    this.mouseMoving = false;
+    // this.mouseMoving = false;
     // Render next frame
     setTimeout(function() 
     {
@@ -1185,7 +1203,13 @@ GameWindow.prototype =
     }     
     else if (String.fromCharCode(e.keyCode) == 'M')
     {
-      this.showMap = !this.showMap;
+      if (this.screen == SCREEN_MAP) {
+        this.screen = SCREEN_GAME;
+      }
+      else
+      {
+        this.screen = SCREEN_MAP;
+      }
     }
   },
   
@@ -1240,7 +1264,7 @@ GameWindow.prototype =
   start : function()
   {
     this.init();
-    window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
+    // window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
     window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
     window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
     

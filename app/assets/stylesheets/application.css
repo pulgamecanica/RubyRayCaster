@@ -15,6 +15,7 @@
  */
 
 html {
+    overflow-X: hidden;
     background-color: #fcfaf5;
     box-shadow: 0 0 0 20px #7292b0 inset;
     box-sizing: border-box;
