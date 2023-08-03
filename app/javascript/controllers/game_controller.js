@@ -6,12 +6,10 @@ import consumer from "channels/consumer"
 const CANVAS_WIDTH = 1050;
 const CANVAS_HEIGHT = 600;
 let gameWindow = null;
-let gameData = null;
+export let gameData = null;
 
 export default class extends Controller {
   static values = {
-    map: String,
-    width: Number,
     gameId: Number
   }
 
@@ -29,16 +27,15 @@ export default class extends Controller {
 
       disconnected() {
         console.log("Disconnected");
+        gameData = null;
         // Called when the subscription has been terminated by the server
       },
 
       received(data) {
-        console.log("Recieved data", data);
-        // Called when there's incoming data on the websocket for this channel
+        gameData = data;
       },
 
       update: function() {
-        console.log("Update");
         return this.perform('update');
       },
 
@@ -50,12 +47,14 @@ export default class extends Controller {
   }
 
   load_game() {
+    if (!gameData) {
+      alert("Not Ready, wait a few seconds");
+      return;
+    }
     if (gameWindow) {
       gameWindow.start();
       return ;
     }
-    let map = this.mapValue;
-    let width = this.widthValue;
     let canvas_container = select("#canvas_container");
 
     canvas_container.selectAll("canvas").remove();
@@ -68,7 +67,7 @@ export default class extends Controller {
     // rayCastingEngine.canvas = canvas.node();
     // rayCastingEngine.canvasContext = rayCastingEngine.canvas.getContext('2d');
     // rayCastingEngine.canvasPixels =  rayCastingEngine.canvasContext.getImageData(0, 0, rayCastingEngine.canvas.width, rayCastingEngine.canvas.height);
-    gameWindow = new GameWindow(canvas.node(), map, width);
+    gameWindow = new GameWindow(canvas.node(), gameData["game"]["map_terrain"], gameData["game"]["map_width"]);
     gameWindow.start();
 
     // REMOVE LOADER

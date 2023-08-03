@@ -1,3 +1,5 @@
+import { gameData } from "controllers/game_controller"
+
 function GameWindow(canvas, map, mapWidth, gameWidth = 400)
 {
   this.width = canvas.width;
@@ -87,6 +89,7 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   this.mouseMoving = false;
 
   this.showMap = false;
+  this.players = [];
 }
 
 GameWindow.prototype = 
@@ -501,7 +504,7 @@ GameWindow.prototype =
   //*******************************************************************//
   drawBackground : function()
   {
-    return;
+    //return;
     // sky
     var color = 255;
     var row;
@@ -934,6 +937,9 @@ GameWindow.prototype =
   // This function is called every certain interval (see this.frameRate) to handle input and render the screen
   update : function() 
   {
+    if (gameData) {
+      this.players = gameData["players"];
+    }
     this.clearbufferCanvas();    
     this.drawOverheadMap();
     this.raycast();

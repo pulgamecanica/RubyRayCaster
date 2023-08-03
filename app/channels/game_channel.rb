@@ -5,17 +5,18 @@ class GameChannel < ApplicationCable::Channel
       puts "Game Not Founded"
     else
       puts "Game Founded streaming ON..."
-      stream_from game_room
+      stream_for game_room
     end
   end
 
   def unsubscribed
+    game_room = GameRoom.find_by(id: params[:id])
     # Any cleanup needed when channel is unsubscribed
   end
 
   def update
     game_room = GameRoom.find_by(id: params[:id])
-    puts game_room
+    GameChannel.broadcast_to(game_room, { game: game_room, players: game_room.players });
   end
 
   def user_input
