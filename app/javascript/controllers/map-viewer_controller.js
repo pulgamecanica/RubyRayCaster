@@ -10,7 +10,7 @@ export default class extends Controller {
     width: Number
   }
   connect() {
-    let map = this.mapValue;
+    let map = this.mapValue.replace(/\s+/g, '');
     let width = this.widthValue;
     let height = map.length / width;
     let tile_size = {x: MAP_WIDTH / width, y: MAP_HEIGHT / height};
