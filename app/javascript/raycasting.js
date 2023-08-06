@@ -924,7 +924,6 @@ GameWindow.prototype =
     } else {
       this.pSpeed = 4;
     }
-    console.log("Running", this.pSpeed, this.fKeyRun);
     this.clearbufferCanvas();
     if (this.screen == SCREEN_MAP) {
       this.drawOverheadMap();

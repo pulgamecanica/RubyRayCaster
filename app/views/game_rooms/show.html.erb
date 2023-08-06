@@ -8,20 +8,6 @@
         data-map-viewer-width-value="<%=@game_room.map_width%>"
         data-map-viewer-map-value="<%= @game_room.map_terrain %>"
       />
-      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
-        <%= @game_room.map_terrain %>
-      </div>
-  </div>
-  <div class="col">
-      <strong>Map objects:</strong>
-      <svg
-        data-controller="map-viewer"
-        data-map-viewer-width-value="<%=@game_room.map_width%>"
-        data-map-viewer-map-value="<%= @game_room.map_objects %>"
-      />
-      <div class="terrain_string" style="max-width: <%= @game_room.map_width.to_s + "ch"%>;"> 
-        <%= @game_room.map_objects %>
-      </div>
   </div>
   <div class="col">
     <strong>Map width:</strong>
@@ -30,14 +16,102 @@
     </p>
   </div>
   <div class="col">
-    <strong>Map height:</strong>
-    <p>
-      <%= @game_room.map_height %>
-    </p>
-  </div>
-  <div class="col">
     <%= link_to "Edit this game room", edit_game_room_path(@game_room) %>
     <%= link_to "Play this game room", game_room_play_path(@game_room) %>
     <%= button_to "Destroy this game room", @game_room, method: :delete %>
   </div>
+</div>
+
+<div class="table">
+  <div class="row">
+    <div class="col">
+      Create Elements to customize your Map
+    </div>
+    <div class="col">
+      Walls, Background, Ceiling, Floor
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'wallN' %>
+        <%= form.hidden_field :key_code, value: 'W' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Wall_N
+        <% end %>
+      <% end %>
+    </div>
+    <div class="col">
+      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'wallS' %>
+        <%= form.hidden_field :key_code, value: 'W' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Wall_S
+        <% end %>
+      <% end %>
+    </div>
+    <div class="col">
+      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'wallE' %>
+        <%= form.hidden_field :key_code, value: 'W' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Wall_E
+        <% end %>
+      <% end %>
+    </div>
+    <div class="col">
+      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'wallW' %>
+        <%= form.hidden_field :key_code, value: 'W' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Wall_W
+        <% end %>
+      <% end %>
+    </div>
+    <div class="col">
+      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'floor' %>
+        <%= form.hidden_field :key_code, value: 'O' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Floor
+        <% end %>
+      <% end %>
+    </div>
+    <div class="col">
+      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
+        <%= form.hidden_field :element_type, value: 'ceiling' %>
+        <%= form.hidden_field :key_code, value: 'O' %>
+        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
+          Ceiling
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  <% @game_room.game_elements.each do |elem| %>
+    <% if elem.persisted? %>
+      <%= form_with(model: [@game_room, elem]) do |form| %>
+        <div class="row">
+            <div class="col">
+              <%= elem.element_type %>
+            </div>
+            <div class="col">
+              <%= form.text_field :key_code, maxlength: 1 %>
+            </div>
+            <div class="col">
+               <% if elem.image.present? %>
+                  <%= image_tag(elem.image, width: "125px") %>
+                <% else %>
+                  No image Present
+                <% end %>
+                <%= form.file_field :image %>
+                <hr>
+            </div>
+            <div class="col">
+              <%= form.submit "Save", class: 'btn btn-primary'%>
+              <%= link_to 'Delete', game_room_game_element_path(@game_room, elem), class: 'delete-btn', data: {turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this element?"} %>
+            </div>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
 </div>

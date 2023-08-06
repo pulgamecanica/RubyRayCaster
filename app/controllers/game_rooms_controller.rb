@@ -8,6 +8,7 @@ class GameRoomsController < ApplicationController
 
   # GET /game_rooms/1 or /game_rooms/1.json
   def show
+    @element = @game_room.game_elements.build
   end
 
   # GET /game_rooms/new
