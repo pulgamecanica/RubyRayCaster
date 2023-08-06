@@ -67,7 +67,7 @@ export default class extends Controller {
     // rayCastingEngine.canvas = canvas.node();
     // rayCastingEngine.canvasContext = rayCastingEngine.canvas.getContext('2d');
     // rayCastingEngine.canvasPixels =  rayCastingEngine.canvasContext.getImageData(0, 0, rayCastingEngine.canvas.width, rayCastingEngine.canvas.height);
-    gameWindow = new GameWindow(canvas.node(), gameData["game"]["map_terrain"], gameData["game"]["map_width"], CANVAS_WIDTH);
+    gameWindow = new GameWindow(canvas.node(), CANVAS_WIDTH);
     gameWindow.start();
 
     // REMOVE LOADER

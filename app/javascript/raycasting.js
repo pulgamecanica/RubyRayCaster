@@ -4,8 +4,11 @@ const SCREEN_GAME = 0;
 const SCREEN_MAP = 1;
 const SCREEN_MENU = 2;
 
-function GameWindow(canvas, map, mapWidth, gameWidth = 400)
+function GameWindow(canvas, gameWidth = 400)
 {
+  let map = gameData["game"]["map_terrain"];
+  let mapWidth = gameData["game"]["map_width"];
+
   this.width = canvas.width;
   this.height = canvas.height;
   this.frameRate = 64; // This is how many times per second the window is updated
@@ -93,12 +96,30 @@ function GameWindow(canvas, map, mapWidth, gameWidth = 400)
   this.fPlayerMapY;
   this.fMinimapWidth = Math.floor(this.width / this.MAP_WIDTH);
   this.fMinimapHeight = Math.floor(this.height / this.MAP_HEIGHT);
-
-  console.log(this.width, this.height, this.fMinimapWidth, this.fMinimapHeight);
-
+  
   this.players = [];
-
   this.screen = SCREEN_GAME;
+
+  /**
+   * One attachment should look like this:
+   * { key_code: 'x'
+   *  attachment (Object) {
+   *    is_solid: true
+   *    textureImage: Image
+   *    textureCanvas: Canvas
+   *    texturePixels: TextureBuffer
+   *    texturePixels: TexturePixels
+   *  }
+   * }
+   * 
+   * Example:
+   * 
+   * {
+   *  A: {true, Image, Canvas, PixelsBuffer},
+   *  O: {false, Image, Canvas, PixelsBuffer}
+   * }
+  **/
+  this.attachments = {};
 }
 
 GameWindow.prototype = 
@@ -110,10 +131,35 @@ GameWindow.prototype =
     image.src = texture_path;
   },
 
-  loadWallTexture : function()
+  loadBuffer : function(bufferCanvas, texture) {
+    bufferCanvas.width = texture.width;
+    bufferCanvas.height = texture.height;
+    bufferCanvas.getContext('2d').drawImage(texture, 0, 0);
+  },
+
+  loadAttachments : function()
   {
+    gameData["elements"].forEach((data) => {
+      let element = data["element"];
+      let image_path = data["image_path"];
+      this.attachments[element["key_code"]] = {};
+      this.attachments[element["key_code"]].is_solid = element["element_type"].includes("wall");
+      this.attachments[element["key_code"]].textureImage = new Image();
+      this.attachments[element["key_code"]].textureImage.crossOrigin = "Anonymous";
+      this.attachments[element["key_code"]].textureImage.onload = this.onTextureLoaded.bind(this, this.attachments[element["key_code"]]);
+      this.attachments[element["key_code"]].textureImage.src = image_path;
+    });
+  },
+
+  onTextureLoaded : function(element) {
+    element.textureBuffer = document.createElement('canvas');
+    this.loadBuffer(element.textureBuffer, element.textureImage);
+    element.texturePixels = element.textureBuffer.getContext('2d').getImageData(0, 0, element.textureBuffer.width, element.textureBuffer.height).data;
+  },
+
+  loadWallTexture : function() {
     this.fWallTexture = new Image();
-    this.loadImage(this.fWallTexture, this.onWallTextureLoaded.bind(this), "/assets/Wall-5.png")
+    this.loadImage(this.fWallTexture, this.onWallTextureLoaded.bind(this), "/assets/Wall-5.png");
   },
 
   loadFloorTexture : function()
@@ -132,12 +178,6 @@ GameWindow.prototype =
   {
     this.fBackgroundTexture = new Image();
     this.loadImage(this.fBackgroundTexture, this.onBackgroundTextureLoaded.bind(this), "/assets/Wall-4.png")
-  },
-  
-  loadBuffer : function(bufferCanvas, texture) {
-    bufferCanvas.width = texture.width;
-    bufferCanvas.height = texture.height;
-    bufferCanvas.getContext('2d').drawImage(texture, 0, 0);
   },
 
   onWallTextureLoaded : function()
@@ -389,6 +429,8 @@ GameWindow.prototype =
   
   init: function()
   {
+    this.loadAttachments();
+    console.log(this.attachments);
     this.loadWallTexture();
     this.loadFloorTexture();
     this.loadCeilingTexture();
