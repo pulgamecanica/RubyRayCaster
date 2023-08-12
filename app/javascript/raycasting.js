@@ -75,6 +75,11 @@ function GameWindow(canvas, gameWidth = 400)
   this.fKeyFlyUp = false;
   this.fKeyFlyDown = false;
   this.fKeyRun = false;
+
+  this.fMouseLeft = false; 
+  this.fMouseRight = false;
+  this.fMouseLookUp = false;
+  this.fMouseLookDown = false;
   
   this.fMap = map.replace(/\s+/g, '');
   this.MAP_WIDTH = mapWidth;
@@ -86,7 +91,7 @@ function GameWindow(canvas, gameWidth = 400)
   this.fWallTexturePixels;
   this.fBackgroundImageArc = 0;
   
-  this.baseLightValue = 180;
+  this.baseLightValue = 100;
   this.baseLightValueDelta = 1;
   this.lastMousePosition;
   this.mouseMoving = false;
@@ -104,11 +109,17 @@ function GameWindow(canvas, gameWidth = 400)
    * One attachment should look like this:
    * { key_code: 'x'
    *  attachment (Object) {
-   *    is_solid: true
-   *    textureImage: Image
-   *    textureCanvas: Canvas
-   *    texturePixels: TextureBuffer
-   *    texturePixels: TexturePixels
+   *    is_solid: true,
+   *    images:
+   *    [
+   *      {
+   *        perspective: W (W - West, E - East, N - North, S - South, C - Ceiling, F - Floor)
+   *        textureImage: Image
+   *        textureCanvas: Canvas
+   *        texturePixels: TextureBuffer
+   *        texturePixels: TexturePixels
+   *      },
+   *    ]
    *  }
    * }
    * 
@@ -120,6 +131,7 @@ function GameWindow(canvas, gameWidth = 400)
    * }
   **/
   this.attachments = {};
+  this.solids = "";
 }
 
 GameWindow.prototype = 
@@ -142,13 +154,41 @@ GameWindow.prototype =
     gameData["elements"].forEach((data) => {
       let element = data["element"];
       let image_path = data["image_path"];
-      this.attachments[element["key_code"]] = {};
+      if (!this.attachments[element["key_code"]]) {
+        this.attachments[element["key_code"]] = {};
+        this.attachments[element["key_code"]].images = [];
+      }
       this.attachments[element["key_code"]].is_solid = element["element_type"].includes("wall");
-      this.attachments[element["key_code"]].textureImage = new Image();
-      this.attachments[element["key_code"]].textureImage.crossOrigin = "Anonymous";
-      this.attachments[element["key_code"]].textureImage.onload = this.onTextureLoaded.bind(this, this.attachments[element["key_code"]]);
-      this.attachments[element["key_code"]].textureImage.src = image_path;
+      if (this.attachments[element["key_code"]].is_solid) {
+        this.solids += element["key_code"];
+      }
+      let tmp = {};
+      if ( element["element_type"].includes("floor")) {
+        tmp.perspective = "F";
+      }
+      else if ( element["element_type"].includes("ceiling")) {
+        tmp.perspective = "C";
+      } else {
+        tmp.perspective = element["element_type"].charAt(element["element_type"].length - 1);
+      }
+      tmp.textureImage = new Image();
+      tmp.textureImage.crossOrigin = "Anonymous";
+      tmp.textureImage.onload = this.onTextureLoaded.bind(this, tmp);
+      tmp.textureImage.src = image_path;
+      this.attachments[element["key_code"]].images.push(tmp);
     });
+  },
+
+  getAttachment : function(keyCode, perspective)
+  {
+    if (!this.attachments[keyCode]) {
+      return (null);
+    }
+    for (let i = 0; i < this.attachments[keyCode].images.length; i++) {
+      if (this.attachments[keyCode].images[i].perspective == perspective)
+        return (this.attachments[keyCode].images[i]);
+    }
+    return (null);
   },
 
   onTextureLoaded : function(element) {
@@ -317,10 +357,16 @@ GameWindow.prototype =
     }
   },
 
-  drawWallSliceRectangleTinted: function(x, y, width, height, xOffset, brightnessLevel)
+  drawWallSliceRectangleTinted: function(x, y, width, height, xOffset, brightnessLevel, image)
   {
     // wait until the texture loads
-    if (this.fWallTextureBuffer == undefined)
+    if (!image) {
+      image = {};
+      //image.textureImage = 
+      image.textureBuffer = this.fWallTextureBuffer;
+      image.texturePixels = this.fWallTexturePixels;
+    }
+    if (image.textureBuffer == undefined)
       return;
     
     var dy = height;
@@ -330,7 +376,7 @@ GameWindow.prototype =
     var bytesPerPixel = 4;
     
     var sourceIndex = (bytesPerPixel * xOffset);
-    var lastSourceIndex = sourceIndex + (this.fWallTextureBuffer.width * this.fWallTextureBuffer.height * bytesPerPixel);
+    var lastSourceIndex = sourceIndex + (image.textureBuffer.width * image.textureBuffer.height * bytesPerPixel);
     
     //var targetCanvasPixels=this.canvasContext.createImageData(0, 0, width, height);
     var targetIndex = (this.bufferCanvasPixels.width * bytesPerPixel) * y + (bytesPerPixel * x);
@@ -371,15 +417,15 @@ GameWindow.prototype =
 
       // Cheap shading trick by using brightnessLevel (which doesn't really have to correspond to "brightness") 
       // to alter colors.  You can use logarithmic falloff or linear falloff to produce some interesting effect
-      var red = Math.floor(this.fWallTexturePixels[sourceIndex] * brightnessLevel);
-      var green = Math.floor(this.fWallTexturePixels[sourceIndex + 1] * brightnessLevel);
-      var blue = Math.floor(this.fWallTexturePixels[sourceIndex + 2] * brightnessLevel);
-      var alpha = Math.floor(this.fWallTexturePixels[sourceIndex + 3]);
+      var red = Math.floor(image.texturePixels[sourceIndex] * brightnessLevel);
+      var green = Math.floor(image.texturePixels[sourceIndex + 1] * brightnessLevel);
+      var blue = Math.floor(image.texturePixels[sourceIndex + 2] * brightnessLevel);
+      var alpha = Math.floor(image.texturePixels[sourceIndex + 3]);
       
       // while there's a row to draw & not end of drawing area
-      while (yError >= this.fWallTextureBuffer.width)
+      while (yError >= image.textureBuffer.width)
       {                  
-        yError -= this.fWallTextureBuffer.width;
+        yError -= image.textureBuffer.width;
         this.bufferCanvasPixels.data[targetIndex] = red;
         this.bufferCanvasPixels.data[targetIndex + 1] = green;
         this.bufferCanvasPixels.data[targetIndex + 2] = blue;
@@ -390,7 +436,7 @@ GameWindow.prototype =
         if (heightToDraw < 1)
           return;
       } 
-      sourceIndex += (bytesPerPixel * this.fWallTextureBuffer.width);
+      sourceIndex += (bytesPerPixel * image.textureBuffer.width);
       if (sourceIndex > lastSourceIndex)
         sourceIndex = lastSourceIndex;      
     }
@@ -430,7 +476,8 @@ GameWindow.prototype =
   init: function()
   {
     this.loadAttachments();
-    console.log(this.attachments);
+    console.log(this.solids);
+    console.log(this.getAttachment("W", "N"));
     this.loadWallTexture();
     this.loadFloorTexture();
     this.loadCeilingTexture();
@@ -522,7 +569,7 @@ GameWindow.prototype =
     {
       for (var c = 0; c < this.MAP_WIDTH; c++)
       {
-        if (this.fMap.charAt(r * this.MAP_WIDTH + c) != "O")
+        if (this.solids.includes(this.fMap.charAt(r * this.MAP_WIDTH + c)))
         {
           this.drawFillRectangle(c * this.fMinimapWidth,
             (r * this.fMinimapHeight), this.fMinimapWidth, this.fMinimapHeight + 1, 0, 0,0, 255);
@@ -603,6 +650,7 @@ GameWindow.prototype =
 
     var distToVerticalGridBeingHit;      // the distance of the x and y ray intersections from
     var distToHorizontalGridBeingHit;      // the viewpoint
+    let mapIndexH, mapIndexV = 0;
 
     var castArc, castColumn;
     
@@ -614,14 +662,14 @@ GameWindow.prototype =
     //   \|/
     //    v
     // we will trace the rays starting from the leftmost ray
-    castArc-=this.ANGLE30;
+    castArc -= this.ANGLE30;
     // wrap around if necessary
     if (castArc < 0)
     {
-      castArc=this.ANGLE360 + castArc;
+      castArc = this.ANGLE360 + castArc;
     }
 
-    for (castColumn=0; castColumn<this.PROJECTIONPLANEWIDTH; castColumn+=1)
+    for (castColumn = 0; castColumn < this.PROJECTIONPLANEWIDTH; castColumn++)
     {
       // Ray is between 0 to 180 degree (1st and 2nd quadrant).
       
@@ -631,12 +679,12 @@ GameWindow.prototype =
         // truncuate then add to get the coordinate of the FIRST grid (horizontal
         // wall) that is in front of the player (this is in pixel unit)
         // ROUNDED DOWN
-        horizontalGrid = Math.floor(this.pY/this.TILE_SIZE)*this.TILE_SIZE  + this.TILE_SIZE;
+        horizontalGrid = Math.floor(this.pY / this.TILE_SIZE) * this.TILE_SIZE + this.TILE_SIZE;
 
         // compute distance to the next horizontal wall
         distToNextHorizontalGrid = this.TILE_SIZE;
 
-        var xtemp = this.fITanTable[castArc]*(horizontalGrid-this.pY);
+        var xtemp = this.fITanTable[castArc] * (horizontalGrid - this.pY);
         // we can get the vertical distance to that wall by
         // (horizontalGrid-playerY)
         // we can get the horizontal distance to that wall by
@@ -647,10 +695,10 @@ GameWindow.prototype =
       // Else, the ray is facing up
       else
       {
-        horizontalGrid = Math.floor(this.pY/this.TILE_SIZE)*this.TILE_SIZE;
+        horizontalGrid = Math.floor(this.pY / this.TILE_SIZE) * this.TILE_SIZE;
         distToNextHorizontalGrid = -this.TILE_SIZE;
 
-        var xtemp = this.fITanTable[castArc]*(horizontalGrid - this.pY);
+        var xtemp = this.fITanTable[castArc] * (horizontalGrid - this.pY);
         xIntersection = xtemp + this.pX;
 
         horizontalGrid--;
@@ -658,9 +706,9 @@ GameWindow.prototype =
       // LOOK FOR HORIZONTAL WALL
       
       // If ray is directly facing right or left, then ignore it 
-      if (castArc==this.ANGLE0 || castArc==this.ANGLE180)
+      if (castArc == this.ANGLE0 || castArc == this.ANGLE180)
       {
-        distToHorizontalGridBeingHit=Number.MAX_VALUE;
+        distToHorizontalGridBeingHit = Number.MAX_VALUE;
       }
       // else, move the ray until it hits a horizontal wall
       else
@@ -668,22 +716,22 @@ GameWindow.prototype =
         distToNextXIntersection = this.fXStepTable[castArc];
         while (true)
         {
-          xGridIndex = Math.floor(xIntersection/this.TILE_SIZE);
-          yGridIndex = Math.floor(horizontalGrid/this.TILE_SIZE);
-          var mapIndex=Math.floor(yGridIndex*this.MAP_WIDTH+xGridIndex);
+          xGridIndex = Math.floor(xIntersection / this.TILE_SIZE);
+          yGridIndex = Math.floor(horizontalGrid / this.TILE_SIZE);
+          mapIndexH = Math.floor(yGridIndex * this.MAP_WIDTH + xGridIndex);
 
           // If we've looked as far as outside the map range, then bail out
-          if ((xGridIndex>=this.MAP_WIDTH) ||
-            (yGridIndex>=this.MAP_HEIGHT) ||
-            xGridIndex<0 || yGridIndex<0)
+          if ((xGridIndex >= this.MAP_WIDTH) ||
+            (yGridIndex >= this.MAP_HEIGHT) ||
+            xGridIndex < 0 || yGridIndex < 0)
           {
             distToHorizontalGridBeingHit = Number.MAX_VALUE;
             break;
           }
           // If the grid is not an Opening, then stop
-          else if (this.fMap.charAt(mapIndex)!='O')
+          else if (this.solids.includes(this.fMap.charAt(mapIndexH)))
           {
-            distToHorizontalGridBeingHit  = (xIntersection-this.pX)*this.fICosTable[castArc];
+            distToHorizontalGridBeingHit = (xIntersection-this.pX)*this.fICosTable[castArc];
             break;
           }
           // Else, keep looking.  At this point, the ray is not blocked, extend the ray to the next grid
@@ -695,29 +743,28 @@ GameWindow.prototype =
         }
       }
 
-
       // FOLLOW X RAY
       if (castArc < this.ANGLE90 || castArc > this.ANGLE270)
       {
-        verticalGrid = this.TILE_SIZE + Math.floor(this.pX/this.TILE_SIZE)*this.TILE_SIZE;
+        verticalGrid = this.TILE_SIZE + Math.floor(this.pX / this.TILE_SIZE) * this.TILE_SIZE;
         distToNextVerticalGrid = this.TILE_SIZE;
 
-        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.pX);
+        var ytemp = this.fTanTable[castArc] * (verticalGrid - this.pX);
         yIntersection = ytemp + this.pY;
       }
       // RAY FACING LEFT
       else
       {
-        verticalGrid = Math.floor(this.pX/this.TILE_SIZE)*this.TILE_SIZE;
+        verticalGrid = Math.floor(this.pX / this.TILE_SIZE) * this.TILE_SIZE;
         distToNextVerticalGrid = -this.TILE_SIZE;
 
-        var ytemp = this.fTanTable[castArc]*(verticalGrid - this.pX);
+        var ytemp = this.fTanTable[castArc] * (verticalGrid - this.pX);
         yIntersection = ytemp + this.pY;
 
         verticalGrid--;
       }
         // LOOK FOR VERTICAL WALL
-      if (castArc==this.ANGLE90||castArc==this.ANGLE270)
+      if (castArc == this.ANGLE90 || castArc == this.ANGLE270)
       {
         distToVerticalGridBeingHit = Number.MAX_VALUE;
       }
@@ -727,21 +774,21 @@ GameWindow.prototype =
         while (true)
         {
           // compute current map position to inspect
-          xGridIndex = Math.floor(verticalGrid/this.TILE_SIZE);
-          yGridIndex = Math.floor(yIntersection/this.TILE_SIZE);
+          xGridIndex = Math.floor(verticalGrid / this.TILE_SIZE);
+          yGridIndex = Math.floor(yIntersection / this.TILE_SIZE);
 
-          var mapIndex=Math.floor(yGridIndex*this.MAP_WIDTH+xGridIndex);
+          mapIndexV=Math.floor(yGridIndex * this.MAP_WIDTH + xGridIndex);
           
-          if ((xGridIndex>=this.MAP_WIDTH) || 
-            (yGridIndex>=this.MAP_HEIGHT) ||
-            xGridIndex<0 || yGridIndex<0)
+          if ((xGridIndex >= this.MAP_WIDTH) || 
+            (yGridIndex >= this.MAP_HEIGHT) ||
+            xGridIndex < 0 || yGridIndex < 0)
           {
             distToVerticalGridBeingHit = Number.MAX_VALUE;
             break;
           }
-          else if (this.fMap.charAt(mapIndex)!='O')
+          else if (this.solids.includes(this.fMap.charAt(mapIndexV)))
           {
-            distToVerticalGridBeingHit =(yIntersection-this.pY)*this.fISinTable[castArc];
+            distToVerticalGridBeingHit = (yIntersection-this.pY) * this.fISinTable[castArc];
             break;
           }
           else
@@ -761,15 +808,16 @@ GameWindow.prototype =
       // determine which ray strikes a closer wall.
       // if yray distance to the wall is closer, the yDistance will be shorter than
       // the xDistance
-      var isVerticalHit=false;
-      var distortedDistance=0;
+      var isVerticalHit = false;
+      var distortedDistance = 0;
       var bottomOfWall;
       var topOfWall;
+      var mapIndexHit = mapIndexH;
       if (distToHorizontalGridBeingHit < distToVerticalGridBeingHit)
       {
-        // the next function call (drawRayOnMap()) is not a part of raycating rendering part, 
+        // the next function call (drawRayOnMap()) is not a part of raycasting rendering part, 
         // it just draws the ray on the overhead map to illustrate the raycasting process
-        dist=distToHorizontalGridBeingHit/this.fFishTable[castColumn];
+        dist = distToHorizontalGridBeingHit / this.fFishTable[castColumn];
 //        dist_y /= convert_to_float(GLfishTable[GLcastColumn]);
         distortedDistance=dist;
         var ratio = this.pDTPP/dist;
@@ -789,6 +837,7 @@ GameWindow.prototype =
       //   the horizontal wall)
       else
       {
+        mapIndexHit = mapIndexV;
         isVerticalHit=true;
         // the next function call (drawRayOnMap()) is not a part of raycating rendering part, 
         // it just draws the ray on the overhead map to illustrate the raycasting process
@@ -816,9 +865,24 @@ GameWindow.prototype =
 
       // Trick to give different shades between vertical and horizontal (you could also use different textures for each if you wish to)
       if (isVerticalHit)
-        this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, this.baseLightValue/(dist));
+      {
+        if (castArc < this.ANGLE90 || castArc > this.ANGLE270)
+        {
+          this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, this.baseLightValue/(dist), this.getAttachment(this.fMap.charAt(mapIndexHit), "E"));
+        }
+        else
+        {
+          this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, this.baseLightValue/(dist), this.getAttachment(this.fMap.charAt(mapIndexHit), "W"));
+        }
+      }
+      else if (castArc > 0 && castArc < this.ANGLE180)
+      {
+        this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, (this.baseLightValue-50)/(dist), this.getAttachment(this.fMap.charAt(mapIndexHit), "S"));
+      }
       else
-        this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, (this.baseLightValue-50)/(dist));
+      {
+        this.drawWallSliceRectangleTinted(castColumn, topOfWall, 1, (bottomOfWall-topOfWall)+1, xOffset, (this.baseLightValue-50)/(dist), this.getAttachment(this.fMap.charAt(mapIndexHit), "N"));
+      }
         
 
       
@@ -830,15 +894,15 @@ GameWindow.prototype =
       //*************
       // FLOOR CASTING at the simplest!  Try to find ways to optimize this, you can do it!
       //*************
-      if (this.fFloorTextureBuffer!=undefined)
+      if (this.fFloorTextureBuffer != undefined)
       {
         // find the first bit so we can just add the width to get the
         // next row (of the same column)
-        var targetIndex=lastBottomOfWall*(this.bufferCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
-        for (var row=lastBottomOfWall;row<this.PROJECTIONPLANEHEIGHT;row++) 
+        var targetIndex=lastBottomOfWall * (this.bufferCanvasPixels.width * bytesPerPixel) + (bytesPerPixel * castColumn);
+        for (var row = lastBottomOfWall; row < this.PROJECTIONPLANEHEIGHT; row++) 
         {                          
           
-          var straightDistance=(this.pHeight)/(row-projectionPlaneCenterY)*
+          var straightDistance=(this.pHeight) / (row - projectionPlaneCenterY) *
             this.pDTPP;
           
           var actualDistance=straightDistance*
@@ -848,8 +912,8 @@ GameWindow.prototype =
           var xEnd = Math.floor(actualDistance * this.fCosTable[castArc]);
     
           // Translate relative to viewer coordinates:
-          xEnd+=this.pX;
-          yEnd+=this.pY;
+          xEnd += this.pX;
+          yEnd += this.pY;
 
           
           // Get the tile intersected by ray:
@@ -858,58 +922,64 @@ GameWindow.prototype =
           //console.log("cellX="+cellX+" cellY="+cellY);
           
           //Make sure the tile is within our map
-          if ((cellX<this.MAP_WIDTH) &&   
-            (cellY<this.MAP_HEIGHT) &&
-            cellX>=0 && cellY>=0)
+          if ((cellX < this.MAP_WIDTH) &&   
+            (cellY < this.MAP_HEIGHT) &&
+            cellX >= 0 && cellY >=0)
           {            
             // Find offset of tile and column in texture
             var tileRow = Math.floor(yEnd % this.TILE_SIZE);
             var tileColumn = Math.floor(xEnd % this.TILE_SIZE);
+            var floorImage = this.getAttachment(this.fMap.charAt((cellY * this.MAP_WIDTH) + cellX), "F");
+            if (!floorImage || !floorImage.textureBuffer) {
+              floorImage = {};
+              floorImage.textureBuffer = this.fFloorTextureBuffer;
+              floorImage.texturePixels = this.fFloorTexturePixels;
+            }
             // Pixel to draw
-            var sourceIndex=(tileRow*this.fFloorTextureBuffer.width*bytesPerPixel)+(bytesPerPixel*tileColumn);
+            var sourceIndex=(tileRow * floorImage.textureBuffer.width * bytesPerPixel) + (bytesPerPixel * tileColumn);
             
             // Cheap shading trick
-            var brighnessLevel=(150/(actualDistance));
-            var red=Math.floor(this.fFloorTexturePixels[sourceIndex]*brighnessLevel);
-            var green=Math.floor(this.fFloorTexturePixels[sourceIndex+1]*brighnessLevel);
-            var blue=Math.floor(this.fFloorTexturePixels[sourceIndex+2]*brighnessLevel);
-            var alpha=Math.floor(this.fFloorTexturePixels[sourceIndex+3]);            
+            var brighnessLevel=(150 / (actualDistance));
+            var red=Math.floor(floorImage.texturePixels[sourceIndex] * brighnessLevel);
+            var green=Math.floor(floorImage.texturePixels[sourceIndex + 1] * brighnessLevel);
+            var blue=Math.floor(floorImage.texturePixels[sourceIndex + 2] * brighnessLevel);
+            var alpha=Math.floor(floorImage.texturePixels[sourceIndex + 3]);            
             
             // Draw the pixel 
-            this.bufferCanvasPixels.data[targetIndex]=red;
-            this.bufferCanvasPixels.data[targetIndex+1]=green;
-            this.bufferCanvasPixels.data[targetIndex+2]=blue;
-            this.bufferCanvasPixels.data[targetIndex+3]=alpha;
+            this.bufferCanvasPixels.data[targetIndex] = red;
+            this.bufferCanvasPixels.data[targetIndex + 1] = green;
+            this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+            this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
             
             // Go to the next pixel (directly under the current pixel)
-            targetIndex+=(bytesPerPixel*this.bufferCanvasPixels.width);                      
+            targetIndex += (bytesPerPixel * this.bufferCanvasPixels.width);                      
           }                                                              
         } 
       }
       //*************
       // CEILING CASTING at the simplest!  Try to find ways to optimize this, you can do it!
       //*************
-      if (this.fCeilingTextureBuffer!=undefined)
+      if (this.fCeilingTextureBuffer != undefined)
       {
         //console.log("this.fCeilingTexturePixels[0]="+this.fCeilingTexturePixels[0]);
         // find the first bit so we can just add the width to get the
         // next row (of the same column)
 
             
-        var targetIndex=lastTopOfWall*(this.bufferCanvasPixels.width*bytesPerPixel)+(bytesPerPixel*castColumn);
-        for (var row=lastTopOfWall;row>=0;row--) 
+        var targetIndex = lastTopOfWall * (this.bufferCanvasPixels.width * bytesPerPixel) + (bytesPerPixel * castColumn);
+        for (var row = lastTopOfWall; row >= 0; row--) 
         {                          
-          var ratio=(this.WALL_HEIGHT-this.pHeight)/(projectionPlaneCenterY-row);
+          var ratio = (this.WALL_HEIGHT - this.pHeight) / (projectionPlaneCenterY - row);
 
-          var diagonalDistance=Math.floor((this.pDTPP*ratio)*
+          var diagonalDistance=Math.floor((this.pDTPP * ratio) *
             (this.fFishTable[castColumn]));
 
           var yEnd = Math.floor(diagonalDistance * this.fSinTable[castArc]);
           var xEnd = Math.floor(diagonalDistance * this.fCosTable[castArc]);
     
           // Translate relative to viewer coordinates:
-          xEnd+=this.pX;
-          yEnd+=this.pY;
+          xEnd += this.pX;
+          yEnd += this.pY;
 
           // Get the tile intersected by ray:
           var cellX = Math.floor(xEnd / this.TILE_SIZE);
@@ -917,32 +987,37 @@ GameWindow.prototype =
           //console.log("cellX="+cellX+" cellY="+cellY);
             
           //Make sure the tile is within our map
-          if ((cellX<this.MAP_WIDTH) &&   
-            (cellY<this.MAP_HEIGHT) &&
-            cellX>=0 && cellY>=0)
+          if ((cellX < this.MAP_WIDTH) &&   
+            (cellY < this.MAP_HEIGHT) &&
+            cellX >= 0 && cellY >= 0)
           {            
           
+            var ceilingImage = this.getAttachment(this.fMap.charAt((cellY * this.MAP_WIDTH) + cellX), "C");
+            if (!ceilingImage || !ceilingImage.textureBuffer) {
+              ceilingImage = {};
+              ceilingImage.textureBuffer = this.fCeilingTextureBuffer;
+              ceilingImage.texturePixels = this.fCeilingTexturePixels;
+            }
             // Find offset of tile and column in texture
             var tileRow = Math.floor(yEnd % this.TILE_SIZE);
             var tileColumn = Math.floor(xEnd % this.TILE_SIZE);
             // Pixel to draw
-            var sourceIndex=(tileRow*this.fCeilingTextureBuffer.width*bytesPerPixel)+(bytesPerPixel*tileColumn);
+            var sourceIndex=(tileRow * ceilingImage.textureBuffer.width * bytesPerPixel) + (bytesPerPixel * tileColumn);
             //console.log("sourceIndex="+sourceIndex);
             // Cheap shading trick
-            var brighnessLevel=(100/diagonalDistance);
-            var red=Math.floor(this.fCeilingTexturePixels[sourceIndex]*brighnessLevel);
-            var green=Math.floor(this.fCeilingTexturePixels[sourceIndex+1]*brighnessLevel);
-            var blue=Math.floor(this.fCeilingTexturePixels[sourceIndex+2]*brighnessLevel);
-            var alpha=Math.floor(this.fCeilingTexturePixels[sourceIndex+3]);            
+            var brighnessLevel=(100 / diagonalDistance);
+            var red=Math.floor(ceilingImage.texturePixels[sourceIndex] * brighnessLevel);
+            var green=Math.floor(ceilingImage.texturePixels[sourceIndex + 1] * brighnessLevel);
+            var blue=Math.floor(ceilingImage.texturePixels[sourceIndex + 2] * brighnessLevel);
+            var alpha=Math.floor(ceilingImage.texturePixels[sourceIndex + 3]);            
             
             // Draw the pixel 
             this.bufferCanvasPixels.data[targetIndex]=red;
-            this.bufferCanvasPixels.data[targetIndex+1]=green;
-            this.bufferCanvasPixels.data[targetIndex+2]=blue;
-            this.bufferCanvasPixels.data[targetIndex+3]=alpha;
-            
+            this.bufferCanvasPixels.data[targetIndex + 1] = green;
+            this.bufferCanvasPixels.data[targetIndex + 2] = blue;
+            this.bufferCanvasPixels.data[targetIndex + 3] = alpha;
             // Go to the next pixel (directly above the current pixel)
-            targetIndex-=(bytesPerPixel*this.bufferCanvasPixels.width);                      
+            targetIndex -= (bytesPerPixel * this.bufferCanvasPixels.width);                      
           }                                                              
         } 
       }       
@@ -1046,7 +1121,7 @@ GameWindow.prototype =
     if (dx>0)
     {
       // moving right
-      if ((this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell+1)!='O')&&
+      if ((this.solids.includes(this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell+1)))&&
         (playerXCellOffset > (this.TILE_SIZE-minDistanceToWall)))
       {
         // back player up
@@ -1056,7 +1131,7 @@ GameWindow.prototype =
     else
     {
       // moving left
-      if ((this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell-1)!='O')&&
+      if ((this.solids.includes(this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell-1)))&&
         (playerXCellOffset < (minDistanceToWall)))
       {
         // back player up
@@ -1067,7 +1142,7 @@ GameWindow.prototype =
     if (dy<0)
     {
       // moving up
-      if ((this.fMap.charAt(((playerYCell-1)*this.MAP_WIDTH)+playerXCell)!='O')&&
+      if ((this.solids.includes(this.fMap.charAt(((playerYCell-1)*this.MAP_WIDTH)+playerXCell)))&&
         (playerYCellOffset < (minDistanceToWall)))
       {
         // back player up 
@@ -1077,7 +1152,7 @@ GameWindow.prototype =
     else
     {
       // moving down                                  
-      if ((this.fMap.charAt(((playerYCell+1)*this.MAP_WIDTH)+playerXCell)!='O')&&
+      if ((this.solids.includes(this.fMap.charAt(((playerYCell+1)*this.MAP_WIDTH)+playerXCell)))&&
         (playerYCellOffset > (this.TILE_SIZE-minDistanceToWall)))
       {
         // back player up 
