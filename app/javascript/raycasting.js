@@ -93,7 +93,6 @@ function GameWindow(canvas, gameWidth = 400)
   
   this.baseLightValue = 100;
   this.baseLightValueDelta = 1;
-  this.lastMousePosition;
   this.mouseMoving = false;
 
   // the following variables are used to keep the player coordinate in the overhead map
@@ -1051,7 +1050,7 @@ GameWindow.prototype =
     var playerArcDelta=0;
     
     //console.log("update");
-    if (this.fKeyLeft)
+    if (this.fKeyLeft || this.fMouseLeft)
     {
       this.pAngle-=this.ANGLE5;
       playerArcDelta=-this.ANGLE5;
@@ -1059,7 +1058,7 @@ GameWindow.prototype =
         this.pAngle+=this.ANGLE360;
     }
       // rotate right
-    else if (this.fKeyRight)
+    else if (this.fKeyRight || this.fMouseRight)
     {
       this.pAngle+=this.ANGLE5;
       playerArcDelta=this.ANGLE5;
@@ -1160,13 +1159,13 @@ GameWindow.prototype =
       }
     }    
     
-    if (this.fKeyLookUp)
+    if (this.fKeyLookUp || this.fMouseLookUp)
     {
-      this.fProjectionPlaneYCenter+=15;
+      this.fProjectionPlaneYCenter += 25;
     }
-    else if (this.fKeyLookDown)
+    else if (this.fKeyLookDown || this.fMouseLookDown)
     {
-      this.fProjectionPlaneYCenter-=15;
+      this.fProjectionPlaneYCenter -= 25;
     }
 
     if (this.fProjectionPlaneYCenter<-this.PROJECTIONPLANEHEIGHT*1)
@@ -1190,15 +1189,12 @@ GameWindow.prototype =
     
     var object=this;
     
-    // if (this.mouseMoving == false) {
-      // this.fKeyLookUp = false;
-      // this.fKeyLookDown = false;
-      // this.fKeyRight = false;
-      // this.fKeyLeft = false;
-      // this.lastMousePosition = false;
-    // }
+    this.fMouseLookUp = false;
+    this.fMouseLookDown = false;
+    this.fMouseRight = false;
+    this.fMouseLeft = false;
 
-    // this.mouseMoving = false;
+    //this.mouseMoving = false;
     // Render next frame
     setTimeout(function() 
     {
@@ -1208,34 +1204,32 @@ GameWindow.prototype =
 
   handleMouseMove: function(e)
   {
+    if (document.pointerLockElement != this.canvas) {
+      this.fMouseRight = false;
+      this.fMouseLeft = false;
+      this.fMouseLookUp = false;
+      this.fMouseLookDown = false;
+      return ;
+    }
     if (e.target instanceof HTMLCanvasElement)
     {
       this.mouseMoving = true;
-      if (this.lastMousePosition) {
-        let direction = [0, 0];
-        if (e.clientX > this.lastMousePosition.clientX)
-        {
-          direction[0] = 1;
-          this.fKeyRight = true;
-        }
-        else if (e.clientX < this.lastMousePosition.clientX)
-        {
-          direction[0] = -1;
-          this.fKeyLeft = true;
-        }
-        if (e.clientY > this.lastMousePosition.clientY)
-        {
-          direction[1] = -1;
-          this.fKeyLookDown = true;
-        }
-        else if (e.clientY < this.lastMousePosition.clientY)
-        {
-          direction[1] = 1;
-          this.fKeyLookUp = true;
-        }
-        console.log(direction);
+      if (e.movementX > 10)
+      {
+        this.fMouseRight = true;
       }
-      this.lastMousePosition = e;
+      else if (e.movementX < -10)
+      {
+        this.fMouseLeft = true;
+      }
+      if (e.movementY > 10)
+      {
+        this.fMouseLookDown = true;
+      }
+      else if (e.movementY < -10)
+      {
+        this.fMouseLookUp = true;
+      }
     }
   },
 
@@ -1289,6 +1283,11 @@ GameWindow.prototype =
     else if (e.keyCode == 16) 
     {
        this.fKeyRun = true;
+    }
+    // EXIT POINTER LOCK WITH 'X'
+    else if (e.keyCode == 88)
+    {
+      document.exitPointerLock();
     }
     else if (String.fromCharCode(e.keyCode) == 'M')
     {
@@ -1357,7 +1356,12 @@ GameWindow.prototype =
   start : function()
   {
     this.init();
-    // window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
+    this.canvas.addEventListener("click", async () => {
+      await this.canvas.requestPointerLock({
+        unadjustedMovement: false,
+      });
+    });
+    window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
     window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
     window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
     
