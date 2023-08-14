@@ -1,10 +1,12 @@
-<h1>Editing game room</h1>
+<div class="center">
+  <h1>Editing game room</h1>
 
-<%= render "form", game_room: @game_room %>
+  <%= render "form", game_room: @game_room %>
 
-<br>
+  <br>
 
-<div>
-  <%= link_to "Show this game room", @game_room %> |
-  <%= link_to "Back to game rooms", game_rooms_path %>
+  <div>
+    <%= link_to "Show this game room", @game_room %> |
+    <%= link_to "Back to game rooms", game_rooms_path %>
+  </div>
 </div>

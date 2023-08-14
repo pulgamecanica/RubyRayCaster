@@ -11,24 +11,26 @@
     </div>
   <% end %>
 
-  <div>
-    <%= form.label :map_terrain, style: "display: block" %>
-    <%= form.text_area :map_terrain %>
-  </div>
+  <div 
+    data-controller="map-editor"
+  >
+    <div id="mapEditor" data-action="click->map-editor#toggleCell keydown->map-editor#updateEditables">
 
-  <div>
-    <%= form.label :map_objects, style: "display: block" %>
-    <%= form.text_area :map_objects %>
-  </div>
+    </div>
 
-  <div>
-    <%= form.label :map_width, style: "display: block" %>
-    <%= form.number_field :map_width %>
-  </div>
+    <div>
+      <%= form.label :map_terrain, style: "display: block" %>
+      <%= form.text_area :map_terrain, {"data-action": "change->map-editor#onTextChange", "data-map-editor-target": "inputMap" }%>
+    </div>
 
-  <div>
-    <%= form.label :map_height, style: "display: block" %>
-    <%= form.number_field :map_height %>
+    <div>
+      <%= form.label :map_width, style: "display: block" %>
+      <%= form.number_field :map_width, {"data-map-editor-target": "inputWidth" }%>
+    </div>
+
+    <div id="mapHeight">
+      
+    </div>
   </div>
 
   <div>

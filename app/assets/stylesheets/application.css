@@ -236,3 +236,11 @@ body {
     border-bottom: none !important;
 
 }
+
+svg .editable {
+    opacity: 0.75;
+}
+
+svg .editable text {
+    fill: indianred;
+}

@@ -71,6 +71,6 @@ class GameRoomsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def game_room_params
-      params.require(:game_room).permit(:map_terrain, :map_objects, :map_width, :map_height)
+      params.require(:game_room).permit(:map_terrain, :map_width)
     end
 end
