@@ -12,7 +12,7 @@ function GameWindow(canvas, gameWidth = 400)
   this.width = canvas.width;
   this.height = canvas.height;
   this.frameRate = 64; // This is how many times per second the window is updated
-  this.canvas = canvas;  
+  this.canvas = canvas;
   this.canvasContext = this.canvas.getContext( '2d' );
    
   // Create a buffer canvas 
@@ -65,7 +65,7 @@ function GameWindow(canvas, gameWidth = 400)
   this.fProjectionPlaneYCenter = this.PROJECTIONPLANEHEIGHT / 2;
   this.fProjectionPlaneXCenter = this.PROJECTIONPLANEHEIGHT / 2;
 
-  // movement flag
+  // movement flags
   this.fKeyUp = false;
   this.fKeyDown = false;
   this.fKeyLeft = false; 
@@ -75,7 +75,6 @@ function GameWindow(canvas, gameWidth = 400)
   this.fKeyFlyUp = false;
   this.fKeyFlyDown = false;
   this.fKeyRun = false;
-
   this.fMouseLeft = false; 
   this.fMouseRight = false;
   this.fMouseLookUp = false;
@@ -89,7 +88,6 @@ function GameWindow(canvas, gameWidth = 400)
   
   this.fWallTextureCanvas;
   this.fWallTexturePixels;
-  this.fBackgroundImageArc = 0;
   
   this.baseLightValue = 100;
   this.baseLightValueDelta = 1;
@@ -103,32 +101,6 @@ function GameWindow(canvas, gameWidth = 400)
   
   this.players = [];
   this.screen = SCREEN_GAME;
-
-  /**
-   * One attachment should look like this:
-   * { key_code: 'x'
-   *  attachment (Object) {
-   *    is_solid: true,
-   *    images:
-   *    [
-   *      {
-   *        perspective: W (W - West, E - East, N - North, S - South, C - Ceiling, F - Floor)
-   *        textureImage: Image
-   *        textureCanvas: Canvas
-   *        texturePixels: TextureBuffer
-   *        texturePixels: TexturePixels
-   *      },
-   *    ]
-   *  }
-   * }
-   * 
-   * Example:
-   * 
-   * {
-   *  A: {true, Image, Canvas, PixelsBuffer},
-   *  O: {false, Image, Canvas, PixelsBuffer}
-   * }
-  **/
   this.attachments = {};
   this.solids = "";
 }
@@ -213,12 +185,6 @@ GameWindow.prototype =
     this.loadImage(this.fCeilingTexture, this.onCeilingTextureLoaded.bind(this), "/assets/Wall-3.png")
   },
   
-  loadBackgroundTexture : function()
-  {
-    this.fBackgroundTexture = new Image();
-    this.loadImage(this.fBackgroundTexture, this.onBackgroundTextureLoaded.bind(this), "/assets/Wall-4.png")
-  },
-
   onWallTextureLoaded : function()
   {
     this.fWallTextureBuffer = document.createElement('canvas');
@@ -238,13 +204,6 @@ GameWindow.prototype =
     this.fCeilingTextureBuffer = document.createElement('canvas');    
     this.loadBuffer(this.fCeilingTextureBuffer, this.fCeilingTexture);
     this.fCeilingTexturePixels = this.fCeilingTextureBuffer.getContext('2d').getImageData(0, 0, this.fCeilingTextureBuffer.width, this.fCeilingTextureBuffer.height).data;
-  },  
-  
-  onBackgroundTextureLoaded : function()
-  {
-    this.fBackgroundTextureBuffer = document.createElement('canvas');   
-    this.loadBuffer(this.fBackgroundTextureBuffer, this.fBackgroundTexture);
-    this.fBackgroundTexturePixels = this.fBackgroundTextureBuffer.getContext('2d').getImageData(0, 0, this.fBackgroundTextureBuffer.width, this.fBackgroundTextureBuffer.height).data;
   },  
 
   arcToRad: function(arcAngle)
@@ -442,10 +401,6 @@ GameWindow.prototype =
 
   },  
   
-  clearbufferCanvas : function()
-  {
-    // no need to do anything because the screen will be redrwan fully anyway
-  },
   
   blitbufferCanvas : function()
   {   
@@ -591,41 +546,6 @@ GameWindow.prototype =
       Math.floor(this.fPlayerMapX + Math.floor(player_size / 2) + (this.fCosTable[this.pAngle] * 10)),
       Math.floor(this.fPlayerMapY + Math.floor(player_size / 2) + (this.fSinTable[this.pAngle] * 10)), 
       255, 42, 0, 255);
-  },
-  
-
-  rgbToHexColor : function(red, green, blue) 
-  {
-    var result = "#" +
-      red.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + "" +
-      green.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + "" +
-      blue.toString(16).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
-    return result;
-  },
-
-  //*******************************************************************//
-  //* Draw background image
-  //*******************************************************************//
-  drawBackground : function()
-  {
-    //return;
-    // sky
-    var color = 255;
-    var row;
-    var incement = 4;
-    for (row = 0; row < this.PROJECTIONPLANEHEIGHT / 2; row += incement)
-    {
-      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH, incement, color / 2, color, 125, 255);      
-      color -= incement * 2;
-    }
-    // ground
-    color = 22;
-    for (; row < this.PROJECTIONPLANEHEIGHT; row += incement)
-    {
-      this.drawFillRectangle(0, row, this.PROJECTIONPLANEWIDTH,incement, color, 20, 20, 255);      
-      color += incement;
-    }
-    this.fBackgroundImageArc;
   },
   
   //*******************************************************************//
@@ -957,14 +877,13 @@ GameWindow.prototype =
       }
       //*************
       // CEILING CASTING at the simplest!  Try to find ways to optimize this, you can do it!
+      // Will try to do it as soon as I can ... :I
       //*************
       if (this.fCeilingTextureBuffer != undefined)
       {
         //console.log("this.fCeilingTexturePixels[0]="+this.fCeilingTexturePixels[0]);
         // find the first bit so we can just add the width to get the
         // next row (of the same column)
-
-            
         var targetIndex = lastTopOfWall * (this.bufferCanvasPixels.width * bytesPerPixel) + (bytesPerPixel * castColumn);
         for (var row = lastTopOfWall; row >= 0; row--) 
         {                          
@@ -1002,7 +921,6 @@ GameWindow.prototype =
             var tileColumn = Math.floor(xEnd % this.TILE_SIZE);
             // Pixel to draw
             var sourceIndex=(tileRow * ceilingImage.textureBuffer.width * bytesPerPixel) + (bytesPerPixel * tileColumn);
-            //console.log("sourceIndex="+sourceIndex);
             // Cheap shading trick
             var brighnessLevel=(100 / diagonalDistance);
             var red=Math.floor(ceilingImage.texturePixels[sourceIndex] * brighnessLevel);
@@ -1020,7 +938,6 @@ GameWindow.prototype =
           }                                                              
         } 
       }       
-        
       // TRACE THE NEXT RAY
       castArc+=1;
       if (castArc>=this.ANGLE360)
@@ -1032,130 +949,107 @@ GameWindow.prototype =
   // This function is called every certain interval (see this.frameRate) to handle input and render the screen
   update : function() 
   {
-    if (gameData) {
-      this.players = gameData["players"];
-    }
+    // if (gameData) {
+    //   this.players = gameData["players"];
+    // }
     if (this.fKeyRun) {
       this.pSpeed = 9;
     } else {
       this.pSpeed = 4;
     }
-    this.clearbufferCanvas();
     if (this.screen == SCREEN_MAP) {
       this.drawOverheadMap();
     } else {
       this.raycast();
     }
     this.blitbufferCanvas();
-    var playerArcDelta=0;
+    var playerArcDelta = 0;
     
-    //console.log("update");
     if (this.fKeyLeft || this.fMouseLeft)
     {
-      this.pAngle-=this.ANGLE5;
-      playerArcDelta=-this.ANGLE5;
-      if (this.pAngle<this.ANGLE0)
-        this.pAngle+=this.ANGLE360;
+      this.pAngle -= this.ANGLE5;
+      playerArcDelta =- this.ANGLE5;
+      if (this.pAngle < this.ANGLE0) {
+        this.pAngle += this.ANGLE360;
+      }
     }
-      // rotate right
     else if (this.fKeyRight || this.fMouseRight)
     {
-      this.pAngle+=this.ANGLE5;
-      playerArcDelta=this.ANGLE5;
-      if (this.pAngle>=this.ANGLE360)
-        this.pAngle-=this.ANGLE360;
-    }
-    this.fBackgroundImageArc-=playerArcDelta;
-    if (this.fBackgroundTextureBuffer!=undefined)
-    {
-      //console.log("this.pAngle="+this.pAngle+" this.fBackgroundImageArc="+this.fBackgroundImageArc);
-      // This code wraps around the background image so that it can be drawn just one.
-      // For this to work, the first section of the image needs to be repeated on the third section (see the image used in this example)
-      if (this.fBackgroundImageArc<-this.PROJECTIONPLANEWIDTH*2)
-        this.fBackgroundImageArc=this.PROJECTIONPLANEWIDTH*2+(this.fBackgroundImageArc);
-      else if (this.fBackgroundImageArc>0)
-        this.fBackgroundImageArc=-(this.fBackgroundTexture.width-this.PROJECTIONPLANEWIDTH- (this.fBackgroundImageArc));
-    }   
-    //  _____     _
-    // |\ arc     |
-    // |  \       y
-    // |    \     |
-    //            -
-    // |--x--|  
-    //
-    //  sin(arc)=y/diagonal
-    //  cos(arc)=x/diagonal   where diagonal=speed
-    var playerXDir=this.fCosTable[this.pAngle];
-    var playerYDir=this.fSinTable[this.pAngle];
-
-    
-    var dx=0;
-    var dy=0;
+      this.pAngle += this.ANGLE5;
+      playerArcDelta = this.ANGLE5;
+      if (this.pAngle >= this.ANGLE360)
+        this.pAngle -= this.ANGLE360;
+    } 
+    // Player Vector Direction Multipliers
+    var playerXDir = this.fCosTable[this.pAngle];
+    var playerYDir = this.fSinTable[this.pAngle];
+    var dx = 0;
+    var dy = 0;
     // move forward
     if (this.fKeyUp)
     {
-      dx=Math.round(playerXDir*this.pSpeed);
-      dy=Math.round(playerYDir*this.pSpeed);
+      dx = Math.round(playerXDir * this.pSpeed);
+      dy = Math.round(playerYDir * this.pSpeed);
     }
     // move backward
     else if (this.fKeyDown)
     {
-      dx=-Math.round(playerXDir*this.pSpeed);
-      dy=-Math.round(playerYDir*this.pSpeed);
+      dx =- Math.round(playerXDir * this.pSpeed);
+      dy =- Math.round(playerYDir * this.pSpeed);
     }
-    this.pX+=dx;
-    this.pY+=dy;
+    this.pX += dx;
+    this.pY += dy;
     
     // compute cell position
-    var playerXCell = Math.floor(this.pX/this.TILE_SIZE);
-    var playerYCell = Math.floor(this.pY/this.TILE_SIZE);
+    var playerXCell = Math.floor(this.pX / this.TILE_SIZE);
+    var playerYCell = Math.floor(this.pY / this.TILE_SIZE);
 
     // compute position relative to cell (ie: how many pixel from edge of cell)
     var playerXCellOffset = this.pX % this.TILE_SIZE;
     var playerYCellOffset = this.pY % this.TILE_SIZE;
 
-    var minDistanceToWall=30;
+    var minDistanceToWall = 15;
     
     // make sure the player don't bump into walls
-    if (dx>0)
+    if (dx > 0)
     {
       // moving right
-      if ((this.solids.includes(this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell+1)))&&
-        (playerXCellOffset > (this.TILE_SIZE-minDistanceToWall)))
+      if ((this.solids.includes(this.fMap.charAt((playerYCell * this.MAP_WIDTH) + playerXCell + 1))) &&
+        (playerXCellOffset > (this.TILE_SIZE - minDistanceToWall)))
       {
         // back player up
-        this.pX-= (playerXCellOffset-(this.TILE_SIZE-minDistanceToWall));
+        this.pX-= (playerXCellOffset-(this.TILE_SIZE - minDistanceToWall));
       }               
     }
     else
     {
       // moving left
-      if ((this.solids.includes(this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell-1)))&&
+      if ((this.solids.includes(this.fMap.charAt((playerYCell*this.MAP_WIDTH)+playerXCell-1))) &&
         (playerXCellOffset < (minDistanceToWall)))
       {
         // back player up
-        this.pX+= (minDistanceToWall-playerXCellOffset);
+        this.pX+= (minDistanceToWall - playerXCellOffset);
       } 
     } 
 
     if (dy<0)
     {
       // moving up
-      if ((this.solids.includes(this.fMap.charAt(((playerYCell-1)*this.MAP_WIDTH)+playerXCell)))&&
+      if ((this.solids.includes(this.fMap.charAt(((playerYCell-1)*this.MAP_WIDTH)+playerXCell))) &&
         (playerYCellOffset < (minDistanceToWall)))
       {
         // back player up 
-        this.pY+= (minDistanceToWall-playerYCellOffset);
+        this.pY+= (minDistanceToWall - playerYCellOffset);
       }
     }
     else
     {
-      // moving down                                  
-      if ((this.solids.includes(this.fMap.charAt(((playerYCell+1)*this.MAP_WIDTH)+playerXCell)))&&
-        (playerYCellOffset > (this.TILE_SIZE-minDistanceToWall)))
+      // moving down                               
+      if ((this.solids.includes(this.fMap.charAt(((playerYCell + 1) * this.MAP_WIDTH) + playerXCell))) &&
+        (playerYCellOffset > (this.TILE_SIZE - minDistanceToWall)))
       {
         // back player up 
-        this.pY-= (playerYCellOffset-(this.TILE_SIZE-minDistanceToWall ));
+        this.pY -= (playerYCellOffset - (this.TILE_SIZE-minDistanceToWall ));
       }
     }    
     
@@ -1167,34 +1061,41 @@ GameWindow.prototype =
     {
       this.fProjectionPlaneYCenter -= 25;
     }
+    // LIMIT LOOK UP & DOWN
+    if (this.fProjectionPlaneYCenter < -this.PROJECTIONPLANEHEIGHT * 1)
+    {
+      this.fProjectionPlaneYCenter =- this.PROJECTIONPLANEHEIGHT * 1;
+    }
+    else if (this.fProjectionPlaneYCenter >= this.PROJECTIONPLANEHEIGHT * 1.5)
+    {
+      this.fProjectionPlaneYCenter = this.PROJECTIONPLANEHEIGHT * 1.5 - 1;
+    }
 
-    if (this.fProjectionPlaneYCenter<-this.PROJECTIONPLANEHEIGHT*1)
-      this.fProjectionPlaneYCenter=-this.PROJECTIONPLANEHEIGHT*1;
-    else if (this.fProjectionPlaneYCenter>=this.PROJECTIONPLANEHEIGHT*1.5)
-      this.fProjectionPlaneYCenter=this.PROJECTIONPLANEHEIGHT*1.5-1;
-      
     if (this.fKeyFlyUp)
     {
-      this.pHeight+=1;
+      this.pHeight += 1;
     }
     else if (this.fKeyFlyDown)
     {
-      this.pHeight-=1;
+      this.pHeight -= 1;
     }
-
-    if (this.pHeight<-5)
-      this.pHeight=-5;
-    else if (this.pHeight>this.WALL_HEIGHT-5)
-      this.pHeight=this.WALL_HEIGHT-5;
-    
-    var object=this;
+    // LIMIT CROUCH & FLY
+    if (this.pHeight < -5)
+    {
+      this.pHeight = -5;
+    }
+    else if (this.pHeight > this.WALL_HEIGHT - 5)
+    {
+      this.pHeight = this.WALL_HEIGHT - 5;
+    }
     
     this.fMouseLookUp = false;
     this.fMouseLookDown = false;
     this.fMouseRight = false;
     this.fMouseLeft = false;
 
-    //this.mouseMoving = false;
+    var object=this;
+
     // Render next frame
     setTimeout(function() 
     {
@@ -1209,9 +1110,8 @@ GameWindow.prototype =
       this.fMouseLeft = false;
       this.fMouseLookUp = false;
       this.fMouseLookDown = false;
-      return ;
     }
-    if (e.target instanceof HTMLCanvasElement)
+    else if (e.target instanceof HTMLCanvasElement)
     {
       this.mouseMoving = true;
       if (e.movementX > 10)
@@ -1236,9 +1136,9 @@ GameWindow.prototype =
   handleKeyDown : function(e) 
   {
 
-    if (!e)
+    if (!e) {
       e = window.event;
-
+    }
     // UP keypad
     if (e.keyCode == '38'  || String.fromCharCode(e.keyCode) == 'W') 
     {
@@ -1258,8 +1158,7 @@ GameWindow.prototype =
     else if (e.keyCode == '39'  || String.fromCharCode(e.keyCode) == 'D') 
     {
        this.fKeyRight = true;
-    }
-    
+    } 
     // LOOK UP
     else if (String.fromCharCode(e.keyCode) == 'Q') 
     {
@@ -1303,27 +1202,26 @@ GameWindow.prototype =
   
   handleKeyUp : function(e) 
   {
-    if (!e)
+    if (!e) {
       e = window.event;
-
-    // UP keypad
+    }
+    // UP
     if (e.keyCode == '38'  || String.fromCharCode(e.keyCode) == 'W') 
     {
       this.fKeyUp = false;
-
     }
-    // DOWN keypad
-    if (e.keyCode == '40' || String.fromCharCode(e.keyCode) == 'S') 
+    // DOWN
+    else if (e.keyCode == '40' || String.fromCharCode(e.keyCode) == 'S') 
     {
       this.fKeyDown = false;
     }
-    // LEFT keypad
-    if (e.keyCode == '37'  || String.fromCharCode(e.keyCode) == 'A') 
+    // LEFT
+    else if (e.keyCode == '37'  || String.fromCharCode(e.keyCode) == 'A') 
     {
        this.fKeyLeft = false;
     }
-    // RIGHT keypad
-    if (e.keyCode == '39'  || String.fromCharCode(e.keyCode) == 'D') 
+    // RIGHT
+    else if (e.keyCode == '39'  || String.fromCharCode(e.keyCode) == 'D') 
     {
        this.fKeyRight = false;
     }
@@ -1347,6 +1245,7 @@ GameWindow.prototype =
     {
        this.fKeyFlyDown = false;
     }
+    // RUN
     else if (e.keyCode == 16) 
     {
        this.fKeyRun = false;
@@ -1364,7 +1263,6 @@ GameWindow.prototype =
     window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
     window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
     window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
-    
     this.animationFrameID = requestAnimationFrame(this.update.bind(this));
   }
 
