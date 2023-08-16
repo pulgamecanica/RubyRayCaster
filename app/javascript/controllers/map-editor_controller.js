@@ -1,25 +1,26 @@
 import { Controller } from "@hotwired/stimulus"
-import { select, scaleLinear, scaleOrdinal, extent, schemePastel2, pointer } from "d3"
+import { select, scaleLinear, scaleOrdinal, extent, schemePastel2, pointer, drag } from "d3"
 
 const SVG_WIDTH = 600;
 const SVG_HEIGHT = 300;
 
-function GameEditor(svg, map_chars_width, map_chars_height) {
-  this.map_chars_width = map_chars_width;
-  this.map_chars_height = map_chars_height;
-  this.map_width = SVG_WIDTH - 20;
-  this.map_height = SVG_HEIGHT - 20;
+function GameEditor(svg, mapCharsWidth, mapCharsHeight) {
+  this.mapCharsWidth = mapCharsWidth;
+  this.mapCharsHeight = mapCharsHeight;
+  this.mapWidth = SVG_WIDTH;
+  this.mapHeight = SVG_HEIGHT;
   this.svg = svg;
-  this.pointer_cords;
+  this.pointerCords;
   this.editables = [];
-  this.tile_size = {x: this.map_width / map_chars_width, y: this.map_height / map_chars_height};
+  this.tileSize = {x: this.mapWidth / mapCharsWidth, y: this.mapHeight / mapCharsHeight};
+  this.rectSelection = {x: 0, y: 0, width: 0, height: 0};
 }
 
 GameEditor.prototype = {
-  changeGameSize: function(new_width, new_height = this.map_chars_height) {
-    this.map_chars_width = +new_width;
-    this.map_chars_height = +new_height;
-    this.tile_size = {x: this.map_width / this.map_chars_width, y: this.map_height / this.map_chars_height};
+  changeGameSize: function(new_width, new_height = this.mapCharsHeight) {
+    this.mapCharsWidth = +new_width;
+    this.mapCharsHeight = +new_height;
+    this.tileSize = {x: this.mapWidth / this.mapCharsWidth, y: this.mapHeight / this.mapCharsHeight};
   },
 
   isCellEditable: function(i) {
@@ -38,19 +39,41 @@ GameEditor.prototype = {
     this.editables.splice(0, this.editables.length);
   },
 
+  indexToCoords : function(index) {
+    return ({x: Math.floor(index % +this.mapCharsWidth), y: Math.floor(index / +this.mapCharsWidth)});
+  },
+
+  updateSelectedTiles: function() {
+    let rectTopLeftCorner = {
+      x: Math.floor(this.rectSelection.x / this.tileSize.x),
+      y: Math.floor(this.rectSelection.y / this.tileSize.y)
+    };
+    let rectBottomDownCorner = {
+      x: Math.floor((this.rectSelection.x + this.rectSelection.width) / this.tileSize.x),
+      y: Math.floor((this.rectSelection.y + this.rectSelection.height) / this.tileSize.y)
+    };
+    for (let i = 0; i < +this.mapCharsWidth * +this.mapCharsHeight; i++) {
+      let tileCords = this.indexToCoords(i);
+      // Check if the rectangle passes throguth this coordinate
+      if (tileCords.x >= rectTopLeftCorner.x && tileCords.x <= rectBottomDownCorner.x &&
+          tileCords.y >= rectTopLeftCorner.y && tileCords.y <= rectBottomDownCorner.y)
+        this.toggleCellEditable(i);
+    }
+  },
+
   init: function() {
     this.svg.attr( "width", SVG_WIDTH )
       .attr( "height", SVG_HEIGHT )
       .attr( "style", "background-color: lemonchiffon;" )
       .attr( "cursor", "crosshair" );
+    this.pointerCords = {i: -1};
     // Enable tabIndex to take key bindings
-    this.pointer_cords = {i: -1};
     this.svg.node().tabIndex = 1;
   },
 } 
 
-const updateHeight = (height) => {
-  select("#mapHeight").selectAll( "p").data( [height] ).enter().append( "p" ).text( "Height: " + Math.floor(height) );
+const updateMapInfo = (width, height) => {
+  select("#mapInfo").selectAll( "p" ).data( [{width: width, height: height}] ).enter().append( "p" ).text( d => "Map " + Math.floor(d.width) + "x" + Math.floor(d.height) );
 }
 
 export default class extends Controller {
@@ -59,14 +82,15 @@ export default class extends Controller {
   update() {
     this.editor.svg.selectAll( "g" ).remove();
     this.drawMap();
-    updateHeight(this.editor.map_chars_height);
+    this.drawRectSelection();
+    updateMapInfo(this.editor.mapCharsWidth, this.editor.mapCharsHeight);
   }
 
   getMapData() {
     return this.inputMapTarget.value.replace(/\s+/g, '').split("").map( (d, i) => {
       return {
         key: d,
-        selected: this.editor.pointer_cords && i == this.editor.pointer_cords.i,
+        selected: this.editor.pointerCords && i == this.editor.pointerCords.i,
         editable: this.editor.isCellEditable(i)
       }
     });
@@ -78,15 +102,9 @@ export default class extends Controller {
 
   poiterMoveUpdate(event) {
     let pt = pointer( event );
-    this.editor.pointer_cords = {
-      i: (Math.floor(pt[1] / this.editor.tile_size.y) * this.inputWidthTarget.value) + Math.floor(pt[0] / this.editor.tile_size.x)
+    this.editor.pointerCords = {
+      i: (Math.floor(pt[1] / this.editor.tileSize.y) * this.inputWidthTarget.value) + Math.floor(pt[0] / this.editor.tileSize.x)
     }
-    this.update();
-  }
-
-  toggleCell() {
-    let elem = this.inputMapTarget.value.replace(/\s+/g, '').split("")[this.editor.pointer_cords.i];
-    this.editor.toggleCellEditable(this.editor.pointer_cords.i);
     this.update();
   }
 
@@ -107,11 +125,22 @@ export default class extends Controller {
     this.update();
   }
 
+  drawRectSelection() {
+    if (this.editor.rectSelection.width == 0 || this.editor.rectSelection.height == 0) return;
+    this.editor.svg.append( "g" ).attr("id", "rectSelection").append( "rect" )
+      .attr( "x", this.editor.rectSelection.width > 0 ? this.editor.rectSelection.x : this.editor.rectSelection.x + this.editor.rectSelection.width )
+      .attr( "y", this.editor.rectSelection.height > 0 ? this.editor.rectSelection.y : this.editor.rectSelection.y + this.editor.rectSelection.height )
+      .attr( "width", this.editor.rectSelection.width > 0 ? this.editor.rectSelection.width : -this.editor.rectSelection.width )
+      .attr( "height", this.editor.rectSelection.height > 0 ? this.editor.rectSelection.height : -this.editor.rectSelection.height )
+      .attr( "rx", 6 ).attr( "ry", 6 )
+      .attr( "fill", "rgba(25, 50, 220, 0.5)" );
+  }
+
   drawMap() {
-    let width = this.inputWidthTarget.value;
+    let width = this.editor.mapCharsWidth;
     let data = this.getMapData();
-    let scX = scaleLinear().domain([0, width]).range([0, this.editor.map_width]);
-    let scY = scaleLinear().domain([0, this.editor.map_chars_height - 1]).range([0, this.editor.map_height - this.editor.tile_size.y]);
+    let scX = scaleLinear().domain([0, width]).range([0, this.editor.mapWidth]);
+    let scY = scaleLinear().domain([0, this.editor.mapCharsHeight - 1]).range([0, this.editor.mapHeight - this.editor.tileSize.y]);
     let scColor = scaleOrdinal( schemePastel2 ).domain( extent( data ) );
     let tiles = this.editor.svg.selectAll( "g" )
       .data( data )
@@ -119,8 +148,8 @@ export default class extends Controller {
       .append( "g" )
       .attr( "class", (d) => d.editable ? "editable" : "" );
 
-    let middleX = this.editor.tile_size.x / 2;
-    let middleY = this.editor.tile_size.y / 2;
+    let middleX = this.editor.tileSize.x / 2;
+    let middleY = this.editor.tileSize.y / 2;
     let textSize = 1.25;
     if (middleX < middleY) {
       textSize *= middleX;
@@ -142,8 +171,8 @@ export default class extends Controller {
       })
       .attr( "x", (d, i) => { return scX(i % width) } )
       .attr( "y", (d, i) => { return scY(Math.floor(i / width)) } )
-      .attr( "width", this.editor.tile_size.x )
-      .attr( "height", this.editor.tile_size.y );
+      .attr( "width", this.editor.tileSize.x )
+      .attr( "height", this.editor.tileSize.y );
 
     tiles.append( "text" )
       .text( d => d.key )
@@ -154,73 +183,112 @@ export default class extends Controller {
 
   connect() {
     console.log("Connected");
-    this.editor = new GameEditor(select("#mapEditor").append( "svg" ).attr( "id", "svgMapEditor" ), this.inputWidthTarget.value, this.getHeight() );
-    // Initialize the Game Editor
+    this.editor = new GameEditor(select( "#mapEditor" ).append( "svg" ).attr( "id", "svgMapEditor" ), this.inputWidthTarget.value, this.getHeight() );
     this.editor.init();
-    // Initialize the pointer hook
-    // Should be done on init() function
-    // I couldn't find a way because I need to use pointerUpdate
+
+    /**
+     * Initialize the pointer hook
+     * Should be done on init() function
+     * I couldn't find a way because I need to use pointerUpdate
+     **/
     this.editor.svg.on( "mousemove", (event) => {
-        this.poiterMoveUpdate(event);
-      });
+      this.poiterMoveUpdate(event);
+    });
+
+    // Set the dragable square selection
+    this.editor.svg.call( drag()
+      .on( "start", () => {
+        let pt = pointer( event, event.target );
+        this.editor.rectSelection.x = pt[0];
+        this.editor.rectSelection.y = pt[1];
+      })
+      .on ( "drag", () => {
+        let pt = pointer( event, event.target );
+        this.editor.rectSelection.width = pt[0] - this.editor.rectSelection.x;
+        this.editor.rectSelection.height = pt[1] - this.editor.rectSelection.y;
+        this.update();
+      })
+      .on ( "end", () => {
+        if (this.editor.rectSelection.width < 0) {
+          this.editor.rectSelection.x = this.editor.rectSelection.x + this.editor.rectSelection.width;
+          this.editor.rectSelection.width = -this.editor.rectSelection.width;
+        }
+        if (this.editor.rectSelection.height < 0) {
+          this.editor.rectSelection.y = this.editor.rectSelection.y + this.editor.rectSelection.height;
+          this.editor.rectSelection.height = -this.editor.rectSelection.height;
+        }
+        this.editor.updateSelectedTiles();
+        this.editor.rectSelection = {x: 0, y: 0, width: 0, height: 0};
+        this.update();
+      })
+    );
+
     this.update();
   }
 
   removeColumn(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     if (this.inputWidthTarget.value <= 1) return;
     this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').split("").map( (d, i) => {
-      if ((i % this.inputWidthTarget.value) == this.inputWidthTarget.value - 1) {
+      if ((i % this.editor.mapCharsWidth) == this.editor.mapCharsWidth - 1) {
         return ("");
       }
       return (d);
     }).join("");
-    this.inputWidthTarget.value = +this.inputWidthTarget.value - 1;
-    this.editor.changeGameSize(this.editor.map_chars_width - 1);
+    this.inputWidthTarget.value = this.editor.mapCharsWidth - 1;
+    this.editor.changeGameSize(this.editor.mapCharsWidth - 1);
+    select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();
   }
 
   removeRow(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     if (this.inputMapTarget.value.length <= this.inputWidthTarget.value) return;
     this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').substr(0, this.inputMapTarget.value.length - this.inputWidthTarget.value)
-    this.editor.changeGameSize(this.editor.map_chars_width, this.editor.map_chars_height - 1);
-    select("#mapHeight").selectAll( "p").remove();
+    this.editor.changeGameSize(this.editor.mapCharsWidth, this.editor.mapCharsHeight - 1);
+    select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();
   }
 
   addColumn(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').split("").map( (d, i) => {
-      if ((i % +this.inputWidthTarget.value) == this.inputWidthTarget.value - 1) {
+      if ((i % +this.editor.mapCharsWidth) == this.editor.mapCharsWidth - 1) {
         return (d + "W");
       }
       return (d);
-    }).join("");  
-    this.inputWidthTarget.value = +this.inputWidthTarget.value + 1;
-    this.editor.changeGameSize(+this.editor.map_chars_width + 1);
+    }).join("");
+    this.inputWidthTarget.value = this.editor.mapCharsWidth + 1;
+    this.editor.changeGameSize(+this.editor.mapCharsWidth + 1);
+    select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();
   }
 
   addRow(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '') + "W".repeat(+this.inputWidthTarget.value);
-    this.editor.changeGameSize(this.editor.map_chars_width, this.editor.map_chars_height + 1);
-    select("#mapHeight").selectAll( "p").remove();
+    this.editor.changeGameSize(this.editor.mapCharsWidth, this.editor.mapCharsHeight + 1);
+    select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();
   }
 
 
   onTextChange() {
     console.log("New Text", this.inputWidthTarget.value, this.inputMapTarget.value);
-    // this.inputTextTarget.value = "############################################";
   }
 
-  onWidthIncrease() {
-    console.log("Increase");
+  onWidthChange(event) {
+    if (event) event.preventDefault();
+    let changeRatio = this.editor.mapCharsWidth - this.inputWidthTarget.value;
+    if (changeRatio < 0) {
+      for (let i = changeRatio; i != 0;  i++) {
+        this.addColumn();
+      }
+    } else {
+      for (let i = changeRatio; i != 0;  i--) {
+        this.removeColumn();
+      }
+    }
   }
 
-  onWidthDecrease() {
-    console.log("Decrease");
-  }
 }

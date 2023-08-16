@@ -14,28 +14,31 @@
   <div 
     data-controller="map-editor"
   >
-    <div id="mapEditor" data-action="click->map-editor#toggleCell keydown->map-editor#updateEditables">
 
-    </div>
+    <div id="mapInfo"></div>
+
+    <div id="mapEditor" data-action="keydown->map-editor#updateEditables"></div>
 
     <button data-action="click->map-editor#addColumn">Add Column</button>
     <button data-action="click->map-editor#removeColumn">Remove Column</button>
     <button data-action="click->map-editor#addRow">Add Row</button>
     <button data-action="click->map-editor#removeRow">Remove Row</button>
 
-    <div>
-      <%= form.label :map_terrain, style: "display: block" %>
-      <%= form.text_area :map_terrain, {"data-action": "change->map-editor#onTextChange", "data-map-editor-target": "inputMap" }%>
-    </div>
+    <hr>
 
-    <div>
-      <%= form.label :map_width, style: "display: block" %>
-      <%= form.number_field :map_width, {"data-map-editor-target": "inputWidth" }%>
-    </div>
+    <details>
+      <summary>Show Raw Inputs</summary>
+      <div>
+        <%= form.label :map_terrain, style: "display: block" %>
+        <%= form.text_area :map_terrain, {"data-action": "change->map-editor#onTextChange", "data-map-editor-target": "inputMap" }%>
+      </div>
+      <div>
+        <%= form.label :map_width, style: "display: block" %>
+        <%= form.number_field :map_width, {"data-map-editor-target": "inputWidth", "data-action": "change->map-editor#onWidthChange" }%>
+      </div>
+    </details>
 
-    <div id="mapHeight">
-      
-    </div>
+    <hr>
   </div>
 
   <div>
