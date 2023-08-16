@@ -182,6 +182,7 @@ export default class extends Controller {
 
   removeRow(event) {
     event.preventDefault();
+    if (this.inputMapTarget.value.length <= this.inputWidthTarget.value) return;
     this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').substr(0, this.inputMapTarget.value.length - this.inputWidthTarget.value)
     this.editor.changeGameSize(this.editor.map_chars_width, this.editor.map_chars_height - 1);
     select("#mapHeight").selectAll( "p").remove();
