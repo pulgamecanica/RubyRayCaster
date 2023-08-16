@@ -1,3 +1,60 @@
+/**********************************************
+Raycasting implementation in Javascript.
+First Demo
+Source: https://github.com/permadi-com/ray-cast/tree/master/demo/7
+
+See it in action: https://permadi.com/tutorial/raycast/demo/7/
+
+What's on this demo:
+Wall finding
+Generating lookup tables
+Fishbowl / distortion corrections
+Rendering of simple (static) ground and sky
+Movement handling
+Textured wall
+Collision detection
+Double buffering
+Floor casting
+Ceiling Casting
+Vertical motions technique (by altering player's height and projection plane)
+---------------
+
+License: MIT (https://opensource.org/licenses/MIT)
+
+Copyright 2015-2018 F. Permadi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this 
+software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, 
+including without limitation the rights to use, copy, modify, merge, publish, 
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to 
+whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+***********************************************/
+
+/**********************************************
+ * Big shout out to permadi for creating the bases for this engine.
+ * This file is mostly a copy of the implementation by permadi
+ * Original source: https://github.com/permadi-com/ray-cast/blob/master/demo/7/sample7.js
+ * 
+ * Since the demo was not enough....
+ * I had to make several changes. For instance:
+ * Several Images are displayed instead of only one. I implemented an unlimited amout of images available to the user.
+ * There can by many types of walls and there can be many floors and ceilings.
+ * Walls have 4 faces, one for each direction, North, South, East, West.
+ * The movement is not limited to key bindings, you can also controll the renderer with the mouse.
+ * The map is full screen and it will not show the player FOV.
+**********************************************/
+
 import { gameData } from "controllers/game_controller"
 
 const SCREEN_GAME = 0;
