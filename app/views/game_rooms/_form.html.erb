@@ -18,6 +18,11 @@
 
     </div>
 
+    <button data-action="click->map-editor#addColumn">Add Column</button>
+    <button data-action="click->map-editor#removeColumn">Remove Column</button>
+    <button data-action="click->map-editor#addRow">Add Row</button>
+    <button data-action="click->map-editor#removeRow">Remove Row</button>
+
     <div>
       <%= form.label :map_terrain, style: "display: block" %>
       <%= form.text_area :map_terrain, {"data-action": "change->map-editor#onTextChange", "data-map-editor-target": "inputMap" }%>

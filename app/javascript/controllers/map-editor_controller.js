@@ -16,9 +16,10 @@ function GameEditor(svg, map_chars_width, map_chars_height) {
 }
 
 GameEditor.prototype = {
-  changeGameSize: function(new_width, new_height) {
-    this.map_chars_width = new_width;
-    this.map_chars_height = new_height;
+  changeGameSize: function(new_width, new_height = this.map_chars_height) {
+    this.map_chars_width = +new_width;
+    this.map_chars_height = +new_height;
+    this.tile_size = {x: this.map_width / this.map_chars_width, y: this.map_height / this.map_chars_height};
   },
 
   isCellEditable: function(i) {
@@ -83,7 +84,7 @@ export default class extends Controller {
     this.update();
   }
 
-  toggleCell(event) {
+  toggleCell() {
     let elem = this.inputMapTarget.value.replace(/\s+/g, '').split("")[this.editor.pointer_cords.i];
     this.editor.toggleCellEditable(this.editor.pointer_cords.i);
     this.update();
@@ -153,7 +154,7 @@ export default class extends Controller {
 
   connect() {
     console.log("Connected");
-    this.editor = new GameEditor(select("#mapEditor").append( "svg" ), this.inputWidthTarget.value, this.getHeight() );
+    this.editor = new GameEditor(select("#mapEditor").append( "svg" ).attr( "id", "svgMapEditor" ), this.inputWidthTarget.value, this.getHeight() );
     // Initialize the Game Editor
     this.editor.init();
     // Initialize the pointer hook
@@ -164,6 +165,50 @@ export default class extends Controller {
       });
     this.update();
   }
+
+  removeColumn(event) {
+    event.preventDefault();
+    if (this.inputWidthTarget.value <= 1) return;
+    this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').split("").map( (d, i) => {
+      if ((i % this.inputWidthTarget.value) == this.inputWidthTarget.value - 1) {
+        return ("");
+      }
+      return (d);
+    }).join("");
+    this.inputWidthTarget.value = +this.inputWidthTarget.value - 1;
+    this.editor.changeGameSize(this.editor.map_chars_width - 1);
+    this.update();
+  }
+
+  removeRow(event) {
+    event.preventDefault();
+    this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').substr(0, this.inputMapTarget.value.length - this.inputWidthTarget.value)
+    this.editor.changeGameSize(this.editor.map_chars_width, this.editor.map_chars_height - 1);
+    select("#mapHeight").selectAll( "p").remove();
+    this.update();
+  }
+
+  addColumn(event) {
+    event.preventDefault();
+    this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '').split("").map( (d, i) => {
+      if ((i % +this.inputWidthTarget.value) == this.inputWidthTarget.value - 1) {
+        return (d + "W");
+      }
+      return (d);
+    }).join("");  
+    this.inputWidthTarget.value = +this.inputWidthTarget.value + 1;
+    this.editor.changeGameSize(+this.editor.map_chars_width + 1);
+    this.update();
+  }
+
+  addRow(event) {
+    event.preventDefault();
+    this.inputMapTarget.value = this.inputMapTarget.value.replace(/\s+/g, '') + "W".repeat(+this.inputWidthTarget.value);
+    this.editor.changeGameSize(this.editor.map_chars_width, this.editor.map_chars_height + 1);
+    select("#mapHeight").selectAll( "p").remove();
+    this.update();
+  }
+
 
   onTextChange() {
     console.log("New Text", this.inputWidthTarget.value, this.inputMapTarget.value);

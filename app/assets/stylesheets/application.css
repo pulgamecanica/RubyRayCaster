@@ -237,6 +237,14 @@ body {
 
 }
 
+#mapEditor {
+    z-index: 5;
+}
+
+#mapEditor svg g {
+    z-index: 1;
+}
+
 svg .editable {
     opacity: 0.75;
 }
