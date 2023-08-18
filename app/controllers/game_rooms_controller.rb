@@ -8,16 +8,25 @@ class GameRoomsController < ApplicationController
 
   # GET /game_rooms/1 or /game_rooms/1.json
   def show
-    @element = @game_room.game_elements.build
+    @elements = {}
+    @game_room.game_elements.each do |elem|
+      if not elem.persisted?
+        next
+      elsif not @elements[elem.key_code]
+        @elements[elem.key_code] = [];
+      end
+      @elements[elem.key_code].push(elem);
+    end
   end
 
   # GET /game_rooms/new
   def new
-    @game_room = GameRoom.new
+    @game_room = GameRoom.new(map_width: 5, map_terrain: "WWWWWWOOOWWOOOWWWWWW")
   end
 
   # GET /game_rooms/1/edit
   def edit
+    @element = @game_room.game_elements.build
   end
 
   # GET /game_rooms/1/edit
@@ -44,7 +53,9 @@ class GameRoomsController < ApplicationController
   def update
     respond_to do |format|
       if @game_room.update(game_room_params)
-        format.html { redirect_to game_room_url(@game_room), notice: "Game room was successfully updated." }
+        elements = @game_room.game_elements.map{ |elem| {element: elem, image_path: rails_blob_path(elem.image, only_path: true)} }
+        GameChannel.broadcast_to(@game_room, { game: @game_room, elements: elements, players: @game_room.players });
+        format.html { redirect_to edit_game_room_path(@game_room), notice: "Game room was successfully updated." }
         format.json { render :show, status: :ok, location: @game_room }
       else
         format.html { render :edit, status: :unprocessable_entity }

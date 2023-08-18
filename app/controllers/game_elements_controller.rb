@@ -8,8 +8,8 @@ class GameElementsController < ApplicationController
     @element = @game.game_elements.build(element_params)
     respond_to do |format|
       if @element.save
-        format.html { redirect_to game_room_path(@game), notice: "Element was successfully created." }
-        format.json { render :edit, status: :created, location: game_room_path(@game) }
+        format.html { redirect_to edit_game_room_path(@game), notice: "Element was successfully created." }
+        format.json { render :edit, status: :created, location: edit_game_room_path(@game) }
       else
         format.html { render :edit, status: :unprocessable_entity }
         format.json { render json: @element.errors, status: :unprocessable_entity }
@@ -21,8 +21,8 @@ class GameElementsController < ApplicationController
   def update
     respond_to do |format|
       if @element.update(element_params)
-        format.html { redirect_to game_room_path(@game), notice: "Element was successfully updated." }
-        format.json { render :edit, status: :ok, location: game_room_path(@game) }
+        format.html { redirect_to edit_game_room_path(@game), notice: "Element was successfully updated." }
+        format.json { render :edit, status: :ok, location: edit_game_room_path(@game) }
       else
         format.html { render :edit, status: :unprocessable_entity }
         format.json { render json: @element.errors, status: :unprocessable_entity }
@@ -37,7 +37,7 @@ class GameElementsController < ApplicationController
     end
     @element.destroy
     respond_to do |format|
-      format.html { redirect_to game_room_path(@game), notice: "Element was successfully destroyed." }
+      format.html { redirect_to edit_game_room_path(@game), notice: "Element was successfully destroyed." }
       format.json { head :no_content }
     end
   end

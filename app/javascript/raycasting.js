@@ -136,11 +136,10 @@ function GameWindow(canvas, gameWidth = 400) {
   this.fMouseLookUp = false;
   this.fMouseLookDown = false;
   
-  this.fMap = map.replace(/\s+/g, '');
-  this.MAP_WIDTH = mapWidth;
-  this.MAP_HEIGHT = Math.floor(this.fMap.length / this.MAP_WIDTH); // Not sure about the floor here ...
+  // this.fMap = map.replace(/\s+/g, '');
+  // this.MAP_WIDTH = mapWidth;
+  // this.MAP_HEIGHT = Math.floor(this.fMap.length / this.MAP_WIDTH); // Not sure about the floor here ...
   
-  this.animationFrameID;
   
   this.fWallTextureCanvas;
   this.fWallTexturePixels;
@@ -159,6 +158,16 @@ function GameWindow(canvas, gameWidth = 400) {
   this.screen = SCREEN_GAME;
   this.attachments = {};
   this.solids = "";
+
+  this.canvas.addEventListener("click", async () => {
+    await this.canvas.requestPointerLock({
+      unadjustedMovement: false,
+    });
+  });
+  window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
+  window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
+  window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
+  this.animationFrameID = requestAnimationFrame(this.update.bind(this));
 }
 
 GameWindow.prototype = 
@@ -459,10 +468,29 @@ GameWindow.prototype =
   },
   
   init: function() {
+    this.fMap = gameData["game"]["map_terrain"].replace(/\s+/g, '');
+    this.MAP_WIDTH = +gameData["game"]["map_width"];;
+    this.MAP_HEIGHT = Math.floor(this.fMap.length / this.MAP_WIDTH);
+    this.fMinimapWidth = Math.floor(this.width / this.MAP_WIDTH);
+    this.fMinimapHeight = Math.floor(this.height / this.MAP_HEIGHT);
+    // Place the player in a non solid position.
+    let indexStart = (Math.floor(this.pY / this.TILE_SIZE) * this.MAP_WIDTH) + Math.floor(this.pX / this.TILE_SIZE);
+    if (this.solids.includes(this.fMap.charAt(indexStart))) {
+      for (let i = 0; i < this.fMap.length; i++, indexStart++) {
+        if (!this.solids.includes(this.fMap.charAt(indexStart))) {
+          this.pX = ((indexStart % this.MAP_WIDTH) * this.TILE_SIZE) + (this.TILE_SIZE / 2);
+          this.pY = (Math.floor(indexStart / this.MAP_WIDTH) * this.TILE_SIZE) + (this.TILE_SIZE / 2);
+          break;
+        }
+      }
+    }
+
+  
     this.loadAttachments();
     this.loadWallTexture();
     this.loadFloorTexture();
     this.loadCeilingTexture();
+    if (this.fSinTable.length) return ;
     this.fSinTable = new Array(this.ANGLE360 + 1);
     this.fISinTable = new Array(this.ANGLE360 + 1);
     this.fCosTable = new Array(this.ANGLE360 + 1);
@@ -1106,21 +1134,7 @@ GameWindow.prototype =
     else if (String.fromCharCode(e.keyCode) == 'E') { this.fKeyFlyUp = false; }
     else if (String.fromCharCode(e.keyCode) == 'C') { this.fKeyFlyDown = false; }
     else if (e.keyCode == 16) { this.fKeyRun = false; }
-  },
-  
-  start : function() {
-    this.init();
-    this.canvas.addEventListener("click", async () => {
-      await this.canvas.requestPointerLock({
-        unadjustedMovement: false,
-      });
-    });
-    window.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
-    window.addEventListener("keydown", this.handleKeyDown.bind(this), false);
-    window.addEventListener("keyup", this.handleKeyUp.bind(this), false);
-    this.animationFrameID = requestAnimationFrame(this.update.bind(this));
   }
-
 }
 
 export { GameWindow }

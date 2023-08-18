@@ -5,7 +5,7 @@ import consumer from "channels/consumer"
 
 const CANVAS_WIDTH = 850;
 const CANVAS_HEIGHT = 600;
-let gameWindow = null;
+let gameWindow =  null;
 export let gameData = null;
 
 export default class extends Controller {
@@ -33,6 +33,9 @@ export default class extends Controller {
 
       received(data) {
         gameData = data;
+        if (gameWindow) {
+          gameWindow.init();
+        }
       },
 
       update: function() {
@@ -52,7 +55,7 @@ export default class extends Controller {
       return;
     }
     if (gameWindow) {
-      gameWindow.start();
+      gameWindow.init();
       return ;
     }
     let canvas_container = select("#canvas_container");
@@ -64,13 +67,7 @@ export default class extends Controller {
       .attr("width", CANVAS_WIDTH)
       .attr("height", CANVAS_HEIGHT);
 
-    // rayCastingEngine.canvas = canvas.node();
-    // rayCastingEngine.canvasContext = rayCastingEngine.canvas.getContext('2d');
-    // rayCastingEngine.canvasPixels =  rayCastingEngine.canvasContext.getImageData(0, 0, rayCastingEngine.canvas.width, rayCastingEngine.canvas.height);
     gameWindow = new GameWindow(canvas.node(), CANVAS_WIDTH);
-    gameWindow.start();
-
-    // REMOVE LOADER
-    // this.load_game();
+    gameWindow.init();
   }
 }

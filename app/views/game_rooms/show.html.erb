@@ -24,94 +24,63 @@
 
 <div class="table">
   <div class="row">
-    <div class="col">
-      Create Elements to customize your Map
-    </div>
-    <div class="col">
-      Walls, Background, Ceiling, Floor
-    </div>
+    <div class="col justify-center">Key Code</div>
+    <div class="col justify-center">Elements</div>
+    <div class="col justify-center lg-col">Images</div>
   </div>
-  <div class="row">
-    <div class="col">
-       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'wallN' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Wall_N
+  <% @elements.each do |key_code, elements| %>
+    <div class="row">
+      <div class="col justify-center">
+        <%= key_code %>
+      </div>
+      <div class="col justify-center">
+        <% elements.each do |elem| %>
+          <%= elem.element_type %><br>
         <% end %>
-      <% end %>
-    </div>
-    <div class="col">
-      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'wallS' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Wall_S
-        <% end %>
-      <% end %>
-    </div>
-    <div class="col">
-      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'wallE' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Wall_E
-        <% end %>
-      <% end %>
-    </div>
-    <div class="col">
-      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'wallW' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Wall_W
-        <% end %>
-      <% end %>
-    </div>
-    <div class="col">
-      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'floor' %>
-        <%= form.hidden_field :key_code, value: 'O' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Floor
-        <% end %>
-      <% end %>
-    </div>
-    <div class="col">
-      <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'ceiling' %>
-        <%= form.hidden_field :key_code, value: 'O' %>
-        <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
-          Ceiling
-        <% end %>
-      <% end %>
-    </div>
-  </div>
-  <% @game_room.game_elements.each do |elem| %>
-    <% if elem.persisted? %>
-      <%= form_with(model: [@game_room, elem]) do |form| %>
-        <div class="row">
-            <div class="col">
-              <%= elem.element_type %>
-            </div>
-            <div class="col">
-              <%= form.text_field :key_code, maxlength: 1 %>
-            </div>
-            <div class="col">
-               <% if elem.image.present? %>
-                  <%= image_tag(elem.image, width: "125px") %>
-                <% else %>
-                  No image Present
+      </div>
+        <div class="col justify-center lg-col">
+          <div class="animated-cube">
+            <div class="cube <%= (elements.first && elements.first.element_type.downcase.include?('wall')) ? "horizontal" : "vertical"%>">
+              <% elements.each do |elem| %>
+                <% if elem.image.present? %>
+                  <% if elem.element_type.downcase == "walln" %>
+                    <div class="cube-face cube-face-north" style="background-image: url(<%= url_for(elem.image) %>);">north</div>
+                  <% elsif elem.element_type.downcase == "walls" %>
+                    <div class="cube-face cube-face-south" style="background-image: url(<%= url_for(elem.image) %>);">south</div>
+                  <% elsif elem.element_type.downcase == "wallw" %>
+                    <div class="cube-face cube-face-west" style="background-image: url(<%= url_for(elem.image) %>);">west</div>
+                  <% elsif elem.element_type.downcase == "walle" %>
+                    <div class="cube-face cube-face-east" style="background-image: url(<%= url_for(elem.image) %>);">east</div>
+                  <% elsif elem.element_type.downcase == "floor" %>
+                    <div class="cube-face cube-face-floor" style="background-image: url(<%= url_for(elem.image) %>);">floor</div>
+                  <% elsif elem.element_type.downcase == "ceiling" %>
+                    <div class="cube-face cube-face-ceiling" style="background-image: url(<%= url_for(elem.image) %>);">ceiling</div>
+                  <% end %>
                 <% end %>
-                <%= form.file_field :image %>
-                <hr>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "walln"}).empty? %>
+                <div class="cube-face cube-face-north">north</div>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "walls"}).empty? %>
+                <div class="cube-face cube-face-south">south</div>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "walle"}).empty? %>
+                <div class="cube-face cube-face-east">east</div>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "wallw"}).empty? %>
+                <div class="cube-face cube-face-west">west</div>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "floor"}).empty? %>
+                <div class="cube-face cube-face-floor">floor</div>
+              <% end %>
+              <% if (elements.filter{|elem| elem.element_type.downcase == "ceiling"}).empty? %>
+                <div class="cube-face cube-face-ceiling">ceiling</div>
+              <% end %>
             </div>
-            <div class="col">
-              <%= form.submit "Save", class: 'btn btn-primary'%>
-              <%= link_to 'Delete', game_room_game_element_path(@game_room, elem), class: 'delete-btn', data: {turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this element?"} %>
-            </div>
+          </div>
+          <% elements.each do |elem| %>
+          <% end %>
         </div>
-      <% end %>
-    <% end %>
+    </div>
   <% end %>
 </div>

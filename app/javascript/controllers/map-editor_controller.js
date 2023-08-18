@@ -235,7 +235,7 @@ export default class extends Controller {
       }
       return (d);
     }).join("");
-    this.inputWidthTarget.value = this.editor.mapCharsWidth - 1;
+    this.inputWidthTarget.value = +this.editor.mapCharsWidth - 1;
     this.editor.changeGameSize(this.editor.mapCharsWidth - 1);
     select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();
@@ -258,7 +258,7 @@ export default class extends Controller {
       }
       return (d);
     }).join("");
-    this.inputWidthTarget.value = this.editor.mapCharsWidth + 1;
+    this.inputWidthTarget.value = +this.editor.mapCharsWidth + 1;
     this.editor.changeGameSize(+this.editor.mapCharsWidth + 1);
     select( "#mapInfo" ).selectAll( "p" ).remove();
     this.update();

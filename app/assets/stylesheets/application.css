@@ -28,6 +28,10 @@ body {
     margin: auto;
 }
 
+.justify-center {
+    justify-content: center !important;
+}
+
 .center {
     text-align: center;
 }
@@ -98,6 +102,109 @@ body {
 .row .col *:first-child {
     border-bottom: 1px gray solid;
 }
+
+.lg-col {
+    width: 100px;
+}
+
+.animated-cube {
+  width: 100px;
+  height: 100px;
+  perspective: 300px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: translateZ(-100px);
+  transition: transform 1s;
+}
+
+.cube:hover {
+  animation: 10s linear 0s infinite rotate-right-up !important;
+}
+
+.cube.horizontal {
+  animation: 10s linear 0s infinite rotate-right;
+}
+
+.cube.vertical {
+  animation: 10s linear 0s infinite rotate-up;
+}
+
+.cube-face {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: rgba(100, 110, 142, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1em;
+  transform: scale(2.5);
+  transform: perspective(500px) translateZ(250px);
+  text-transform: uppercase;
+  border: 1px black solid;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@keyframes rotate-right {
+  from {
+    transform: translateZ(-100px);
+  }
+  to {
+    transform: translateZ(-100px) rotateY( 360deg);
+  }
+}
+
+@keyframes rotate-up {
+  from {
+    transform: translateZ(-100px);
+  }
+  to {
+    transform: translateZ(-100px) rotateX( 360deg);
+  }
+}
+
+
+@keyframes rotate-right-up {
+  from {
+    transform: translateZ(-100px);
+  }
+  to {
+    transform: translateZ(-100px) rotateX( 360deg) rotateY( 360deg);
+  }
+}
+
+.cube-face-north {
+    transform: rotateY( 0deg) translateZ(50px);
+}
+
+.cube-face-east {
+    transform: rotateY( 90deg) translateZ(50px);
+}
+
+.cube-face-south {
+    transform: rotateY(180deg) translateZ(50px);
+}
+
+.cube-face-west {
+    transform: rotateY(-90deg) translateZ(50px);
+}
+
+.cube-face-ceiling {
+    transform: rotateX( 90deg) translateZ(50px);
+}
+
+.cube-face-floor {
+    transform: rotateX(-90deg) translateZ(50px);
+}
+
 
 .terrain_string {
     font-size: 10px;
