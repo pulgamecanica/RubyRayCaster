@@ -34,6 +34,7 @@ export default class extends Controller {
       received(data) {
         gameData = data;
         if (gameWindow) {
+          console.log("Update", data);
           gameWindow.init();
         }
       },

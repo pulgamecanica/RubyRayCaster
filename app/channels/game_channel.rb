@@ -17,7 +17,7 @@ class GameChannel < ApplicationCable::Channel
 
   def update
     game_room = GameRoom.find_by(id: params[:id])
-    elements = game_room.game_elements.map{ |elem| {element: elem, image_path: rails_blob_path(elem.image, only_path: true)} }
+    elements = game_room.game_elements.map{ |elem| {element: elem, image_path: elem.image.present? ? rails_blob_path(elem.image, only_path: true) : nil } }
     GameChannel.broadcast_to(game_room, { game: game_room, elements: elements, players: game_room.players });
   end
 

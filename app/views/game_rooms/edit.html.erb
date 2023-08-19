@@ -1,4 +1,17 @@
 <p style="color: green"><%= notice %></p>
+<p style="color: red">
+  <% if not alert.nil? and alert.any? %>
+    <div style="color: red">
+      <h4><%= pluralize(alert.count, "error") %> prohibited this game element from being saved:</h4>
+
+      <ul>
+        <% alert.each do |error| %>
+          <li><%= error[0] %>: <span style="color: darkred;"><%= error[1] %></span></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>    
+</p>
 <div class="center">
   <h1>Editing game room</h1>
 
@@ -19,7 +32,6 @@
     <div class="col">
        <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
         <%= form.hidden_field :element_type, value: 'wallN' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Wall_N
         <% end %>
@@ -28,7 +40,6 @@
     <div class="col">
       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
         <%= form.hidden_field :element_type, value: 'wallS' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Wall_S
         <% end %>
@@ -37,7 +48,6 @@
     <div class="col">
       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
         <%= form.hidden_field :element_type, value: 'wallE' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Wall_E
         <% end %>
@@ -46,7 +56,6 @@
     <div class="col">
       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
         <%= form.hidden_field :element_type, value: 'wallW' %>
-        <%= form.hidden_field :key_code, value: 'W' %>
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Wall_W
         <% end %>
@@ -55,7 +64,6 @@
     <div class="col">
       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
         <%= form.hidden_field :element_type, value: 'floor' %>
-        <%= form.hidden_field :key_code, value: 'O' %>
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Floor
         <% end %>
@@ -63,15 +71,14 @@
     </div>
     <div class="col">
       <%= form_with(model: [@game_room, @element], html: {class: 'float-left mr-1'}) do |form| %>
-        <%= form.hidden_field :element_type, value: 'ceiling' %>
-        <%= form.hidden_field :key_code, value: 'O' %>
+        <%= form.hidden_field :element_type, value: 'ceiling' %> 
         <%= button_tag(type: 'submit', class: 'btn btn-secondary') do %>
           Ceiling
         <% end %>
       <% end %>
     </div>
   </div>
-  <% @game_room.game_elements.each do |elem| %>
+  <% @game_room.game_elements.order(updated_at: :desc).each do |elem| %>
     <% if elem.persisted? %>
       <%= form_with(model: [@game_room, elem]) do |form| %>
         <div class="row">

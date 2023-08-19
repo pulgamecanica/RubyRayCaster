@@ -8,15 +8,7 @@ class GameRoomsController < ApplicationController
 
   # GET /game_rooms/1 or /game_rooms/1.json
   def show
-    @elements = {}
-    @game_room.game_elements.each do |elem|
-      if not elem.persisted?
-        next
-      elsif not @elements[elem.key_code]
-        @elements[elem.key_code] = [];
-      end
-      @elements[elem.key_code].push(elem);
-    end
+    setup_elements
   end
 
   # GET /game_rooms/new
@@ -32,6 +24,7 @@ class GameRoomsController < ApplicationController
   # GET /game_rooms/1/edit
   def play
     @game_room = GameRoom.find(params[:game_room_id])
+    setup_elements
   end
 
   # POST /game_rooms or /game_rooms.json
@@ -53,7 +46,7 @@ class GameRoomsController < ApplicationController
   def update
     respond_to do |format|
       if @game_room.update(game_room_params)
-        elements = @game_room.game_elements.map{ |elem| {element: elem, image_path: rails_blob_path(elem.image, only_path: true)} }
+        elements = @game_room.game_elements.map{ |elem| {element: elem, image_path: elem.image.present? ? rails_blob_path(elem.image, only_path: true) : nil } }
         GameChannel.broadcast_to(@game_room, { game: @game_room, elements: elements, players: @game_room.players });
         format.html { redirect_to edit_game_room_path(@game_room), notice: "Game room was successfully updated." }
         format.json { render :show, status: :ok, location: @game_room }
@@ -75,6 +68,18 @@ class GameRoomsController < ApplicationController
   end
 
   private
+
+    def setup_elements
+      @elements = {}
+      @game_room.game_elements.order(updated_at: :desc).each do |elem|
+        if not elem.persisted?
+          next
+        elsif not @elements[elem.key_code]
+          @elements[elem.key_code] = [];
+        end
+        @elements[elem.key_code].push(elem);
+      end
+    end
     # Use callbacks to share common setup or constraints between actions.
     def set_game_room
       @game_room = GameRoom.find(params[:id])

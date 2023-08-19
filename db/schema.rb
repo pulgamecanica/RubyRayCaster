@@ -52,10 +52,10 @@ ActiveRecord::Schema[7.0].define(version: 2023_08_14_140334) do
   end
 
   create_table "game_rooms", force: :cascade do |t|
-    t.text "map_terrain"
     t.integer "map_width"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "map_terrain"
   end
 
   create_table "messages", force: :cascade do |t|

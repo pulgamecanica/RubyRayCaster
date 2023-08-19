@@ -9,9 +9,9 @@ class GameElementsController < ApplicationController
     respond_to do |format|
       if @element.save
         format.html { redirect_to edit_game_room_path(@game), notice: "Element was successfully created." }
-        format.json { render :edit, status: :created, location: edit_game_room_path(@game) }
+        format.json { render edit_game_room_path(@game), status: :created, location: edit_game_room_path(@game) }
       else
-        format.html { render :edit, status: :unprocessable_entity }
+        format.html { render html: edit_game_room_path(@game), status: :unprocessable_entity }
         format.json { render json: @element.errors, status: :unprocessable_entity }
       end
     end
@@ -21,10 +21,13 @@ class GameElementsController < ApplicationController
   def update
     respond_to do |format|
       if @element.update(element_params)
+        elements = @element.game_room.game_elements.map{ |elem| {element: elem, image_path: elem.image.present? ? rails_blob_path(elem.image, only_path: true) : nil } }
+        GameChannel.broadcast_to(@element.game_room, { game: @element.game_room, elements: elements, players: @element.game_room.players });
         format.html { redirect_to edit_game_room_path(@game), notice: "Element was successfully updated." }
-        format.json { render :edit, status: :ok, location: edit_game_room_path(@game) }
+        format.json { render edit_game_room_path(@game), status: :ok, location: edit_game_room_path(@game) }
       else
-        format.html { render :edit, status: :unprocessable_entity }
+        flash[:alert] = @element.errors
+        format.html { render html: edit_game_room_path(@game), status: :unprocessable_entity }
         format.json { render json: @element.errors, status: :unprocessable_entity }
       end
     end

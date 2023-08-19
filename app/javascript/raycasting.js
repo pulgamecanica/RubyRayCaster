@@ -110,8 +110,8 @@ function GameWindow(canvas, gameWidth = 400) {
   this.fYStepTable = [];
 
   // Player
-  this.pX = 100;
-  this.pY = 160;
+  this.pX = this.TILE_SIZE + this.TILE_SIZE / 2;
+  this.pY = this.TILE_SIZE + this.TILE_SIZE / 2;
   this.pAngle = 0;
   this.pDTPP = (this.PROJECTIONPLANEWIDTH / 2) / Math.tan(30 * Math.PI / 180); // Player distance to Projection Plane
   this.pHeight = 32;
@@ -205,10 +205,14 @@ GameWindow.prototype =
       } else {
         tmp.perspective = element["element_type"].charAt(element["element_type"].length - 1);
       }
-      tmp.textureImage = new Image();
-      tmp.textureImage.crossOrigin = "Anonymous";
-      tmp.textureImage.onload = this.onTextureLoaded.bind(this, tmp);
-      tmp.textureImage.src = image_path;
+      if (!image_path) {
+        tmp.textureImage = null;
+      } else {
+        tmp.textureImage = new Image();
+        tmp.textureImage.crossOrigin = "Anonymous";
+        tmp.textureImage.onload = this.onTextureLoaded.bind(this, tmp);
+        tmp.textureImage.src = image_path;
+      }
       this.attachments[element["key_code"]].images.push(tmp);
     });
   },
@@ -219,7 +223,7 @@ GameWindow.prototype =
       return (null);
     }
     for (let i = 0; i < this.attachments[keyCode].images.length; i++) {
-      if (this.attachments[keyCode].images[i].perspective == perspective)
+      if (this.attachments[keyCode].images[i].perspective == perspective && this.attachments[keyCode].images[i].textureImage)
         return (this.attachments[keyCode].images[i]);
     }
     return (null);
@@ -484,8 +488,8 @@ GameWindow.prototype =
         }
       }
     }
-
-  
+    this.solids = "";
+    this.attachments = {};
     this.loadAttachments();
     this.loadWallTexture();
     this.loadFloorTexture();

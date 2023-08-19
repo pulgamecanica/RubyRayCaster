@@ -131,7 +131,7 @@ body {
 }
 
 .cube.vertical {
-  animation: 10s linear 0s infinite rotate-up;
+  animation: 20s linear 0s infinite rotate-up;
 }
 
 .cube-face {
@@ -163,11 +163,14 @@ body {
 }
 
 @keyframes rotate-up {
-  from {
+  0% {
     transform: translateZ(-100px);
   }
-  to {
-    transform: translateZ(-100px) rotateX( 360deg);
+  50% {
+    transform: translateZ(-100px) rotateX( -60deg) rotateY( 360deg);
+  }
+  100% {
+    transform: translateZ(-100px) rotateX( 30deg) rotateY( 180deg);
   }
 }
 
