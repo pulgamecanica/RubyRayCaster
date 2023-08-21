@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { select } from "d3"
 import { GameWindow } from "../raycasting"
+import { drawSvgMap } from "./map-viewer_controller"
 import consumer from "channels/consumer"
 
 const CANVAS_WIDTH = 850;
@@ -37,6 +38,7 @@ export default class extends Controller {
           console.log("Update", data);
           gameWindow.init();
         }
+        drawSvgMap(select("#map-viewer-svg"), gameData["game"]["map_terrain"], gameData["game"]["map_width"]);
       },
 
       update: function() {

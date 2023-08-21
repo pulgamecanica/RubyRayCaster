@@ -477,6 +477,13 @@ GameWindow.prototype =
     this.MAP_HEIGHT = Math.floor(this.fMap.length / this.MAP_WIDTH);
     this.fMinimapWidth = Math.floor(this.width / this.MAP_WIDTH);
     this.fMinimapHeight = Math.floor(this.height / this.MAP_HEIGHT);
+    this.solids = "";
+    this.attachments = {};
+    this.loadAttachments();
+    this.loadWallTexture();
+    this.loadFloorTexture();
+    this.loadCeilingTexture();
+   
     // Place the player in a non solid position.
     let indexStart = (Math.floor(this.pY / this.TILE_SIZE) * this.MAP_WIDTH) + Math.floor(this.pX / this.TILE_SIZE);
     if (this.solids.includes(this.fMap.charAt(indexStart))) {
@@ -488,12 +495,6 @@ GameWindow.prototype =
         }
       }
     }
-    this.solids = "";
-    this.attachments = {};
-    this.loadAttachments();
-    this.loadWallTexture();
-    this.loadFloorTexture();
-    this.loadCeilingTexture();
     if (this.fSinTable.length) return ;
     this.fSinTable = new Array(this.ANGLE360 + 1);
     this.fISinTable = new Array(this.ANGLE360 + 1);
